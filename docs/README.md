@@ -1,6 +1,6 @@
 ---
 home: true
-heroImage: /assets/index.jpg
+heroImage: /assets/image/index.jpg
 heroText: 鸵鸟蛋的世界
 tagline: 制作：鸵鸟蛋
 actionText: 快速进入 →

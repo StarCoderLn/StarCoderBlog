@@ -11,22 +11,23 @@ module.exports = {
     nav: [
       {
         text: '主页',
-        link: '/'
+        link: 'https://starcoderln.github.io/'
       },
       {
         text: 'Github',
-        link: 'https://www.github.com'
+        link: 'https://www.github.com/StarCoderLn'
       }
     ],
     sidebar: [
       {
-        title: "文档",
+        title: "VuePress",
         collapsable: false,
         children: [
-          ["https://www.jianshu.com/p/191d1e21f7ed/", "Markdown基本语法"],
-          ["https://vuepress.vuejs.org/zh/", "VuePress文档"],
-          ["https://segmentfault.com/a/1190000015237352#comment-area", "VuePress从零开始搭建自己专属博客"],
-          ["http://www.yishilingxu.xyz:8090/document/share.html#_1-%E5%B7%A5%E5%85%B7-vuepress", "搭建个人博客"]
+          { title: '搭建个人博客', path: '/document/vuepress' }
+          // ["https://github.com/cdoco/markdown-syntax", "Markdown语法详解"],
+          // ["https://segmentfault.com/a/1190000015237352#comment-area", "VuePress从零开始搭建自己专属博客"],
+          // ["http://www.yishilingxu.xyz:8090/document/share.html#_1-%E5%B7%A5%E5%85%B7-vuepress", "搭建个人博客"],
+          // ["https://mp.weixin.qq.com/s/TR8TS-teKhCbGKtjNqMqWQ", "VuePress搭建技术网站与个人博客"]
         ]
       }
     ],
