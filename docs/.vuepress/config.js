@@ -29,6 +29,22 @@ module.exports = {
           // ["http://www.yishilingxu.xyz:8090/document/share.html#_1-%E5%B7%A5%E5%85%B7-vuepress", "搭建个人博客"],
           // ["https://mp.weixin.qq.com/s/TR8TS-teKhCbGKtjNqMqWQ", "VuePress搭建技术网站与个人博客"]
         ]
+      },
+      {
+        title: '服务器',
+        collapsable: false,
+        children: [
+          { title: 'XAMPP与IIS', path: '/document/xampp' }
+        ]
+      },
+      {
+        title: 'PHP',
+        collapsable: false,
+        children: [
+          { title: 'PHP入门', path: '/document/php' },
+          { title: 'phpMyAdmin', path: '/document/phpMyAdmin' },
+          { title: 'PHP PDO', path: '/document/phpPdo' }
+        ]
       }
     ],
   }

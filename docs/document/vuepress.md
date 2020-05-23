@@ -7,7 +7,7 @@
 - 部署代码的时候执行命令`npm run deploy`，这句脚本实际上执行的是`bash deploy.sh`，但是在windows系统上是不能直接运行bash命令的，所以需要在git bash里面运行。
 - 提交代码的过程中会遇到没有权限提交到github仓库的问题，此时我们需要在本地配置并创建ssh key。方法如下：  
   （1）在git bash中执行命令：  
-  ```
+  ```bash
   ssh-keygen -t rsa -C "your_email@email.com"
   ```
   （2）回车后可以输入本地保存ssh key的地址，括号里有一个默认地址，当然也可以直接使用这个地址，直接回车就行了。然后再设置密码，ssh key就生成好了。  
