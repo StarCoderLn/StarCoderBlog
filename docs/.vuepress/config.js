@@ -43,7 +43,8 @@ module.exports = {
         children: [
           { title: 'PHP入门', path: '/document/php' },
           { title: 'phpMyAdmin', path: '/document/phpMyAdmin' },
-          { title: 'PHP PDO', path: '/document/phpPdo' }
+          { title: 'PHP PDO', path: '/document/phpPdo' },
+          { title: 'PHP面向对象', path: '/document/phpOop' }
         ]
       }
     ],

@@ -61,7 +61,7 @@ c:\xampp\mysql\bin\mysqld.exe --defaults-file=c:\xampp\mysql\bin\my.ini mysql
 
 ## PHP与MySQL
 
-上面我们其实是在直接操作数据库，但是实际开发过程中，应该是前端链接PHP，然后PHP链接数据库，通过PHP来对数据库进行操作的。前端连接PHP有两种方式，一种是通过`Form`表单，另外一种是通过`Ajax`请求。下面就来介绍下PHP如何链接数据库。  
+上面我们其实是在直接操作数据库，但是实际开发过程中，应该是前端连接PHP，然后PHP连接数据库，通过PHP来对数据库进行操作的。前端连接PHP有两种方式，一种是通过`Form`表单，另外一种是通过`Ajax`请求。下面就来介绍下PHP如何连接数据库。  
 
 需要注意的是，不同版本的PHP操作MySQL的函数有所不同，PHP版本在5以下，参照[PHP MySQL函数](https://www.w3school.com.cn/php/php_ref_mysql.asp)；PHP版本在5以上，参照[PHP5 MySQLi函数](https://www.w3school.com.cn/php/php_ref_mysqli.asp)。以下演示的PHP版本都是在5以上。
 
