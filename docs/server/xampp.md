@@ -8,19 +8,19 @@
 
 2. windows系统上安装完成后打开的面板如下，点击Apache那一行的start按钮，当看到Apache那里变成绿色时，说明服务器已经启动成功了。此时在浏览器中访问localhost，可以看到xampp默认启动的页面。
 
-![xampp](../.vuepress/public/assets/image/document/xampp1.png 'xampp')  
+![xampp](../.vuepress/public/assets/image/server/xampp1.png 'xampp')  
 
-![xampp](../.vuepress/public/assets/image/document/xampp2.png 'xampp')
+![xampp](../.vuepress/public/assets/image/server/xampp2.png 'xampp')
 
 3. 接着，点击右边菜单栏的Explorer，可以打开xampp软件安装的文件夹位置。
 
-![xampp](../.vuepress/public/assets/image/document/xampp3.png 'xampp')
+![xampp](../.vuepress/public/assets/image/server/xampp3.png 'xampp')
 
 4. 然后打开htdocs这个文件夹，我们只要把想要放在服务器上的文件放在这个文件夹中，比如此处放了一个server文件夹，里面有写好的代码，然后在浏览器中访问localhost/server，就可以看到我们代码显示的内容了。到此，xampp的安装与使用就完成了。
 
-![xampp](../.vuepress/public/assets/image/document/xampp4.png 'xampp')
+![xampp](../.vuepress/public/assets/image/server/xampp4.png 'xampp')
 
-![xampp](../.vuepress/public/assets/image/document/xampp5.png 'xampp')
+![xampp](../.vuepress/public/assets/image/server/xampp5.png 'xampp')
 
 ## IIS
 
@@ -28,32 +28,32 @@
 
 1. 打开设置，点击应用。
 
-![iis](../.vuepress/public/assets/image/document/iis1.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis1.png 'iis')
 
 2. 点击右侧的程序与功能。
 
-![iis](../.vuepress/public/assets/image/document/iis2.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis2.png 'iis')
 
 3. 点击启用或关闭Windows功能。
 
-![iis](../.vuepress/public/assets/image/document/iis3.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis3.png 'iis')
 
 4. 找到 Internet Information Services（Internet信息服务），然后把图中红框里的东西都勾选上，再点击确定，这个时候就会搜索相关的文件并应用所做的更改。
 
-![iis](../.vuepress/public/assets/image/document/iis4.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis4.png 'iis')
 
 5. 应用更改完成后，在控制面板搜索服务。win10可以通过Win+R打开运行面板，然后输入control打开控制面板。
 
-![iis](../.vuepress/public/assets/image/document/iis5.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis5.png 'iis')
 
 6. 点击管理工具，找到IIS管理器，双击就可以打开本地的IIS管理器了。
 
-![iis](../.vuepress/public/assets/image/document/iis6.png 'iis')  
+![iis](../.vuepress/public/assets/image/server/iis6.png 'iis')  
 
-![iis](../.vuepress/public/assets/image/document/iis7.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis7.png 'iis')
 
 7. 右键点击浏览可以打开IIS网站的根目录，这个时候我们在这个目录下新建一个文件夹，编辑我们自己的代码，就同样可以在浏览器中访问了。
 
-![iis](../.vuepress/public/assets/image/document/iis8.png 'iis')  
+![iis](../.vuepress/public/assets/image/server/iis8.png 'iis')  
 
-![iis](../.vuepress/public/assets/image/document/iis9.png 'iis')
+![iis](../.vuepress/public/assets/image/server/iis9.png 'iis')

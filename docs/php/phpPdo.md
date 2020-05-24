@@ -33,4 +33,4 @@
 
 效果如下
 
-![phppdo](../.vuepress/public/assets/image/document/phppdo1.png 'phppdo')
+![phppdo](../.vuepress/public/assets/image/php/phppdo1.png 'phppdo')

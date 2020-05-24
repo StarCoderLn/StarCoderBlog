@@ -37,7 +37,7 @@ PHP（外文名：`PHP Hypertext Preprocessor`，中文：“超文本预处理�
 ?>
 ```
   上面这段代码会在浏览器打印出‘我没被声明’。  
-![php](../.vuepress/public/assets/image/document/php1.png 'php')
+![php](../.vuepress/public/assets/image/php/php1.png 'php')
 
 4. `global`关键字可以将一个变量变成全局的。下面这段代码在浏览器中运行时会报错，因为变量a是在函数外面声明的，在函数里面没法直接访问到。
 ```php
@@ -107,7 +107,7 @@ once就是引入一次，两者的区别就是`include`不论有没有引入错�
 ?>
 ```
 浏览器中直接打印出json格式的数据  
-![php](../.vuepress/public/assets/image/document/php2.png 'php')
+![php](../.vuepress/public/assets/image/php/php2.png 'php')
 
 7. `session`会话机制  
 如果在网站上执行过某个php文件，打开过这个页面，然后在这个网站上打开别的页面，就像跟浏览器做了一次对话，这时候往`session`里存一个东西，我们就能在其他页面取到。比如，先访问session.php，再访问array.php，就能够取到view的值，这是一个会话间的存储。
@@ -168,6 +168,6 @@ $('#btn').click(function (e) {
 ```
 上面代码的运行效果如下：  
 - 点击提交按钮发起请求  
-![php](../.vuepress/public/assets/image/document/php3.png 'php')  
+![php](../.vuepress/public/assets/image/php/php3.png 'php')  
 - 请求返回结果  
-![php](../.vuepress/public/assets/image/document/php4.png 'php')
+![php](../.vuepress/public/assets/image/php/php4.png 'php')

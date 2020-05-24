@@ -12,9 +12,9 @@
   ```
   （2）回车后可以输入本地保存ssh key的地址，括号里有一个默认地址，当然也可以直接使用这个地址，直接回车就行了。然后再设置密码，ssh key就生成好了。  
   （3）找到本地存放ssh key的文件夹，打开带有P标识的文件，复制里面的ssh key
-  ![sshkey存放目录](../.vuepress/public/assets/image/document/sshkey.png "ssh key")
+  ![sshkey存放目录](../.vuepress/public/assets/image/blog/sshkey.png "ssh key")
   （4）访问自己的github，找到 SSH and GPG keys，将刚刚复制的ssh key放到这里就行了。
-  ![sshkey github设置](../.vuepress/public/assets/image/document/sshkey-github.png "ssh key")  
+  ![sshkey github设置](../.vuepress/public/assets/image/blog/sshkey-github.png "ssh key")  
   此时，再去向远程仓库拉取或者提交代码就没问题了。
 
 3. 补充  

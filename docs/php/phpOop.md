@@ -181,7 +181,7 @@ public function info() {
 ```
 
 代码运行效果  
-![oop](../.vuepress/public/assets/image/document/oop1.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop1.png 'oop')
 
 ## 面向对象封装
 
@@ -282,7 +282,7 @@ PHP中在类里面声明的以“__”开始的方法都是PHP给我们提供的
 
 运行结果  
 
-![oop](../.vuepress/public/assets/image/document/oop3.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop3.png 'oop')
 
 ## 面向对象继承和多态
 
@@ -290,7 +290,7 @@ PHP只支持**单继承**，不允许多重继承。即一个子类只能有一�
 
 **1. 访问控制**
 
-![oop](../.vuepress/public/assets/image/document/oop2.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop2.png 'oop')
 
 **2. 重载（overload）**
 
@@ -349,7 +349,7 @@ parent::fun();
 
 运行结果  
 
-![oop](../.vuepress/public/assets/image/document/oop4.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop4.png 'oop')
 
 ## 抽象类和接口
 
@@ -391,7 +391,7 @@ public abstract function fun();
 
 运行结果
 
-![oop](../.vuepress/public/assets/image/document/oop5.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop5.png 'oop')
 
 **2. 接口技术**
 
@@ -461,7 +461,7 @@ class 类名 implements 接口名1,接口名2 {...}
 
 运行结果
 
-![oop](../.vuepress/public/assets/image/document/oop6.png 'oop')
+![oop](../.vuepress/public/assets/image/php/oop6.png 'oop')
 
 **3. 抽象类和接口的区别**
 
