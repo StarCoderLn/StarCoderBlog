@@ -46,6 +46,13 @@ module.exports = {
           { title: 'PHP PDO', path: '/php/phpPdo' },
           { title: 'PHP面向对象', path: '/php/phpOop' }
         ]
+      },
+      {
+        title: '函数式编程',
+        collapsable: false,
+        children: [
+          { title: '看完就够用的函数式编程', path: '/fp/fp' }
+        ]
       }
     ],
   }
