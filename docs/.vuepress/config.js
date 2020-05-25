@@ -53,6 +53,15 @@ module.exports = {
         children: [
           { title: '看完就够用的函数式编程', path: '/fp/fp' }
         ]
+      },
+      {
+        title: 'Linux',
+        collapsable: false,
+        children: [
+          { title: 'VirtualBox虚拟机与ubuntu系统', path: '/linux/ubuntu' },
+          { title: 'Cygwin', path: '/linux/cygwin' },
+          { title: 'Linux知识', path: '/linux/linux' }
+        ]
       }
     ],
   }
