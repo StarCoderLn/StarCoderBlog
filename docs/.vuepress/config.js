@@ -51,7 +51,7 @@ module.exports = {
         title: '函数式编程',
         collapsable: false,
         children: [
-          { title: '看完就够用的函数式编程', path: '/fp/fp' }
+          { title: '看完就够用的函数式编程', path: '/fp/enoughFp' }
         ]
       },
       {
@@ -61,6 +61,13 @@ module.exports = {
           { title: 'VirtualBox虚拟机与ubuntu系统', path: '/linux/ubuntu' },
           { title: 'Cygwin', path: '/linux/cygwin' },
           { title: 'Linux知识', path: '/linux/linux' }
+        ]
+      },
+      {
+        title: 'JavaScript',
+        collapsable: false,
+        children: [
+          { title: 'ECMAScript', path: '/javascript/ecmascript' }
         ]
       }
     ],
