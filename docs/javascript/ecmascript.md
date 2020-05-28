@@ -383,3 +383,430 @@ onmessage = function(e) {
 找到对应的文件夹，一步一步找到相应的页面，然后打开就可以看到线程间的通信了。
 
 ![http-server](../.vuepress/public/assets/image/javascript/http-server2.png 'http-server') 
+
+**5. ES9 新特性**
+
+**5-1. 异步迭代器和异步生成器**
+
+在了解异步迭代器和异步生成器之前，先来了解下什么是迭代器和生成器。
+
+- **迭代器 Iterator**
+
+Iterator 是一个特殊对象，它包含一个 `next` 方法，next 方法返回一个对象，这个对象包含两个属性，一个是 value；一个是 done，done是一个布尔值，表示是否遍历完成。
+
+```js
+next() => { value: '', done: true }
+```
+
+下面的例子演示如何创建并使用一个迭代器。
+
+```js
+const createIterator = items => {
+  const keys = Object.keys(items)
+  const len = keys.length
+  let pointer = 0
+  return {
+    next() {
+      const done = pointer >= len
+      const value = !done ? items[keys[pointer++]] : undefined
+      return {
+        value,
+        done
+      }
+    }
+  }
+}
+
+const it1 = createIterator([1, 2, 3])
+console.log(it1.next()) // {value: 1, done: false}
+console.log(it1.next()) // {value: 2, done: false}
+console.log(it1.next()) // {value: 3, done: false}
+console.log(it1.next()) // {value: undefined, done: true}
+```
+
+拥有 iterator 的数据结构，也就是具有 `Symbol.iterator` 方法的数据结构，是可以被 for...of 遍历的。
+
+数组原生就具有 iterator 接口。
+
+```js
+const arr = [1, 2, 3]
+
+console.log(typeof arr[Symbol.iterator]) // function，证明数据具有这个方法
+
+for (const val of arr) {
+  console.log(val) // 1 2 3
+}
+```
+
+对象默认是没有 iterator 接口的。
+
+```js
+const obj = {a: 'a', b: 'b', c: 'c'}
+console.log(typeof obj[Symbol.iterator]) // 'undefined'，证明没有这个方法
+
+for (const val of obj) {
+    console.log(val) // Uncaught TypeError: obj is not iterable
+}
+```
+
+但是可以手动给对象部署 iterator 接口。
+
+```js
+const obj = {a: 'a', b: 'b', c: 'c'}
+
+obj[Symbol.iterator] = function() { // 给对象部署 iterator 接口
+  const self = this
+  const keys = Object.keys(self)
+  const len = keys.length
+  let pointer = 0
+  return {
+    next() {
+      const done = pointer >= len
+      const value = !done ? self[keys[pointer++]] : undefined
+      return {
+        value,
+        done
+      }
+    }
+  }
+}
+
+console.log(typeof obj[Symbol.iterator]) // function
+
+for (const val of obj) {
+    console.log(val) // a b c
+}
+```
+
+- **生成器 Generator**
+
+Generator 是一个特殊函数，函数体内部使用 `yeild` 表达式，定义不同的内部状态，**当执行Generator函数时，不会直接执行函数体，而是会返回一个遍历器对象（iterator）**。
+
+function 关键字和函数名之间有一个 `*` 。
+
+```js
+function* fn() {
+  console.log('正常函数中我会执行')
+  yield 1
+  yield 2
+  yield 3
+  console.log('执行完了')
+}
+
+const iteratorFn = fn() // 这时函数体并没有被执行，没有任何输出，而是创建了一个iterator
+console.log(iteratorFn.next()) // 当调用 next 方法之后函数体才会开始执行
+console.log(iteratorFn.next())
+console.log(iteratorFn.next())
+console.log(iteratorFn.next())
+```
+
+执行结果如下。
+
+![ES9](../.vuepress/public/assets/image/javascript/es1.png 'ES9')
+
+- **异步迭代器 Async Iterator**
+
+异步迭代器和同步迭代器相同，都是一个特殊对象，并且含有一个 next 方法，区别在于同步迭代器的 next 方法返回一个含有 value 和 done 属性的对象，而异步迭代器的 next 方法返回一个 Promise 对象，并且 Promise 对象的值为含有 value 和 done 属性的对象。
+
+```js
+next() => { value: '', done: true }
+next() => Promise { value: '', done: true }
+```
+
+下面演示了如何模拟创建并使用一个异步迭代器，并不是一个真正的异步迭代器。
+
+```js
+const createAsyncIterator = items => {
+  const keys = Object.keys(items)
+  const len = keys.length
+  let pointer = 0
+  return {
+    next() {
+      const done = pointer >= len
+      const value = !done ? items[keys[pointer++]] : undefined
+      return Promise.resolve({
+        value,
+        done
+      })
+    }
+  }
+}
+
+const asyncIterator = createAsyncIterator([1, 2, 3])
+aynscIterator.next().then(res => {
+    console.log(res) // {value: 1, done: false}
+})
+aynscIterator.next().then(res => {
+    console.log(res) // {value: 2, done: false}
+})
+aynscIterator.next().then(res => {
+    console.log(res) // {value: 3, done: false}
+})
+aynscIterator.next().then(res => {
+    console.log(res) // {value: undefined, done: true}
+})
+```
+
+- **异步执行语句 for...await...of**
+
+for...of 方法能够遍历具有 Symbol.iterator 接口的同步迭代器数据，但是不能遍历异步迭代器。 ES9新增的 for...await...of 可以用来遍历具有 Symbol.asyncIterator 方法的数据结构，也就是异步迭代器，且会等待前一个成员的状态改变后才会遍历到下一个成员，相当于 async 函数内部的 await。
+
+定义一个真正的异步迭代器，并使用 for...await...of 遍历它。
+
+```js
+const asyncItems = {
+  a: 1,
+  b: 2,
+  c: 3,
+  [Symbol.asyncIterator]() {
+    const self = this
+    const keys = Object.keys(self)
+    const len = keys.length
+    let pointer = 0
+    return {
+      next() {
+        const done = pointer >= len
+        const value = !done ? self[keys[pointer++]] : undefined;
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({value, done})
+          }, 1000)
+        }) 
+      }
+    }
+  }
+}
+
+
+async function fn() {
+  for await (const val of asyncItems) {
+    console.log(val)
+  }
+}
+fn() // 等待1s后打印出1，再过1s后打印出2，再过1s后打印出3
+```
+
+- **异步生成器 Async Generator**
+
+我们可以采取一种更方便的方式创建异步迭代器，就是利用异步生成器。
+
+异步生成器和普通的生成器很像，但是它是 async 函数，内部可以使用 await 表达式，并且它返回一个具有 Symbol.asyncIterator 方法的对象。
+
+```js
+async function* fn() {
+  yield await Promise.resolve(1)
+  yield await Promise.resolve(2)
+  yield await Promise.resolve(3)
+}
+
+const asyncFn = fn()
+async function run() {
+  for await (const val of asyncFn) {
+    console.log(val) // 1 2 3
+  }
+}
+run();
+console.log(typeof asyncFn[Symbol.asyncIterator]) // 'function'
+```
+
+**5-2. Promise.finally**
+
+[Promise.prototype.finally()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise/finally) 返回一个 Promise。在 promise 结束时，无论结果是 fulfilled 或者是 rejected，都会执行指定的回调函数。这为在 Promise 是否成功完成后都需要执行的代码提供了一种方式，避免了同样的语句需要在 then() 和 catch() 中各写一次的情况。
+
+比如下面的代码只会执行 resolve 里的内容，如果把 resolve 注释掉，才会执行 reject 里的内容。
+
+```js
+function fn() {
+  return new Promise((resolve, reject) => {
+    resolve('success')
+    reject('fail')
+  })
+}
+fn()
+  .then(res => {
+    console.log(res)
+  }).catch(err => {
+    console.log(err)
+  })
+```
+
+无论是成功还是失败，我们都想执行代码，这个时候就需要用到 finally 了。
+
+```js
+function fn() {
+  return new Promise((resolve, reject) => {
+    resolve('success')
+    reject('fail')
+  })
+}
+fn()
+  .then(res => {
+    console.log(res)
+  }).catch(err => {
+    console.log(err)
+  }).finally(() => {
+    console.log('不论成功或失败我都会执行')
+  })
+```
+
+**5-3. Rest / Spread**
+
+ES6 时提供了扩展运算符...，但是仅用于数组。
+
+```js
+const arr = [1, 2, 3]
+console.log([11, 22, ...arr]) // [11, 22, 1, 2, 3]
+```
+
+到了 ES9 ，就出现了和数组的一样的扩展运算符...，可用于对象或函数参数。
+
+```js
+function fn(a, b, ...c) {
+  console.log(a, b, c)
+}
+fn(1, 2, 3, 4, 5) // 1 2 [3, 4, 5]
+```
+
+```js
+const obj = {
+  name: "shenzhen",
+  age: 4,
+  info: {
+    phone: 188888
+  }
+}
+const { name, ...infos } = obj
+console.log(name, infos) // shenzhen {age: 4, info: {…}}
+```
+
+```js
+const obj = {
+  name: "shenzhen",
+  age: 4,
+  info: {
+    phone: 188888
+  }
+}
+function fn({ name, ...infos }) {
+  console.log(name, infos) // shenzhen {age: 4, info: {…}}
+}
+fn(obj)
+```
+
+```js
+const obj = {
+  name: "shenzhen",
+  age: 4,
+  info: {
+    phone: 188888
+  }
+}
+const obj2 = { ...obj, address: "beijing" }
+console.log(obj2) // {name: "shenzhen", age: 4, info: {…}, address: "beijing"}
+```
+
+利用这个可以实现对象浅拷贝。
+
+```js
+const obj = {
+  name: "shenzhen",
+  age: 4,
+  info: {
+    phone: 188888
+  }
+}
+const objClone = { ...obj }
+objClone.name = 'guangzhou'
+console.log(objClone.name) // guangzhou 
+console.log(obj.name) // shenzhen 原来的数据不受影响，实现浅拷贝
+objClone.info.phone = 177777
+console.log(objClone.info.phone) // 177777
+console.log(obj.info.phone) // 177777
+```
+
+**5-4. 对正则表达式增强**
+
+假如有一个需求：将 YYYY-MM-DD 格式的年月日解析到数组中
+
+ES9 之前的实现方法可能如下：
+
+```js
+const dateStr = '2020-05-28'
+const reg = /([0-9]{4})-([0-9]{2})-([0-9]{2})/
+const res = reg.exec(dateStr)
+console.log(res[1], res[2], res[3])
+```
+
+ES9 提供了 `?<name>` 的形式可以为捕获的分组自定义名称。上面可改成：
+
+```js
+const dateStr = '2020-05-28'
+const reg = /(?<year>[0-9]{4})-(?<month>[0-9]{2})-(?<day>[0-9]{2})/
+const res = reg.exec(dateStr)
+console.log(res.groups.year, res.groups.month, res.groups.day)
+```
+
+假如现在有另外一个需求：要将时间改成月日年的格式。可以通过自定义命名捕获分组配合 replace 来实现。
+
+```js
+const dateStr = '2020-05-28'
+const reg = /(?<year>[0-9]{4})-(?<month>[0-9]{2})-(?<day>[0-9]{2})/
+const newDate = dateStr.replace(reg, `$<month>-$<day>-$<year>`)
+console.log(newDate) // 05-28-2020
+```
+
+反向断言（后行断言）
+
+假如有这样一个需求：需要捕获货币符号
+
+通过先行断言的方式实现如下：
+
+```js
+const str = '$123'
+const reg = /\D(?=\d+)/ // 先行断言格式的正则表达式 ?=pattern
+const res = reg.exec(str)
+console.log(res[0]) // $
+```
+
+通过后行断言（反向断言）的方式获取数字的实现如下：
+
+```js
+const str = '$123'
+const reg = /(?<=\D)\d+/ // 后行断言格式的正则表达式 ?=pattern
+const res = reg.exec(str)
+console.log(res[0]) // 123
+```
+
+dotAll 方式
+
+```js
+const str = 'shen\nzhen'
+console.log(/shen.zhen/.test(str))  // false
+console.log(/shen.zhen/s.test(str)) // true
+```
+
+汉字匹配
+
+```js
+const oldReg = /[\u4e00-\u9fa5]/  // ES9 之前的书写方式，既繁琐又不好记
+const newReg = /\p{Script=Han}/u  // ES9 的书写方式，更加容易理解
+const str = '深圳'
+console.log(oldReg.test(str)) // true
+console.log(newReg.test(str)) // true
+```
+
+非转义序列的模板字符串
+
+一般的转义方式：
+
+```
+\u unicode转义
+\x 十六进制转义
+```
+
+ES6 提供了 [String.raw](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/raw)，具体用法需要再去详细了解。
+
+```js
+'\u{54}' // 'T'
+String.raw`\u{54}` // '\u{54}'
+```
