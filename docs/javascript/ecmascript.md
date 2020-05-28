@@ -211,7 +211,7 @@ fn2() // 打印出来的时间差不多是2秒，说明是同步执行的，取�
 
 **4-2. Object.values()**
 
-返回的是对象自身的属性值，不包 括继承过来的值。
+返回的是对象自身的属性值，不包括继承过来的值。
 
 ```js
 const obj = { name: "深圳", age: 30 }
@@ -225,7 +225,7 @@ Object.values(obj) // ["深圳", 30]
 
 **4-3. Object.entries()**
 
-作用跟 for...in 类似，两者的区别是 for...in 会枚举原型链中的属性
+作用跟 for...in 类似，两者的区别是 for...in 会枚举原型链中的属性。
 
 ```js
 const obj = { name: "深圳", age: 30 }
@@ -244,7 +244,7 @@ const obj = { name: "深圳", age: 30 }
 for (const [key, value] of Object.entries(obj)) {
   console.log(`${key}-${value}`)
 }
-
+// 或
 Object.entries(obj).forEach(([key, value]) => {
   console.log(`${key}-${value}`)
 });
@@ -257,7 +257,7 @@ Object.entries(obj).forEach(([key, value]) => {
 
 targetLength 是当前字符串需要填充到的长度。如果这个数值小于当前字符串的长度，则返回当前字符串本身。
 
-padString 是要填充的字符串。如果字符串太长，使填充后的字符串长度超过了目标长度，则只保留最左侧的部分，其他部分会被截断。缺省值为""。
+padString 是要填充的字符串。如果字符串太长，使填充后的字符串长度超过了目标长度，则**只保留最左侧的部分**，其他部分会被截断。缺省值为""。
 
 **4-4. 结尾允许逗号**
 
@@ -339,13 +339,13 @@ worker.onmessage = function(e) {
 // worker.js
 onmessage = function(e) {
   let arrBuffer = e.data
-  console.log(arrBuffer) // 打印出来的东西就是跟主线程共享的那块内存地址。如果此时主线程往内存地址中写入了数据，那么再worker线程直接就可共享，直接读取就可以了
+  console.log(arrBuffer) // 打印出来的东西就是跟主线程共享的那块内存地址。如果此时主线程往内存地址中写入了数据，那么在worker线程直接就可共享，直接读取就可以了
 
   arrBuffer[20] = 88 // worker 线程更改共享内存的数据，不用重新发送共享内存地址
 }
 ```
 
-在上面的例子中，我们直接操作读取和修改了共享内存的数据，其实这是错误的操作方式，如果有多个线程同时这么做，那么就会有冲突。我们应该使用 Atomics 提供的方法来操作数据。
+在上面的例子中，我们直接读取和修改了共享内存的数据，其实这是错误的操作方式，如果有多个线程同时这么做，那么就会有冲突。我们应该使用 Atomics 提供的方法来操作数据。
 
 ```js
 Atomics.load(arrBuffer, 20) // 读数据方法
@@ -359,7 +359,7 @@ Atomics.notify(intArrBuffer, 11, 1) // 该方法仅在共享的 Int32Array 下�
 
 [Web Worker](http://www.ruanyifeng.com/blog/2018/07/web-worker.html)也可以为JavaScript创造多线程环境，它是通过 postMessage 进行通信。这个也需要了解学习下。
 
-下面这个例子展示了主线程和 Worker 线程之间如何进行通信。验证例子时需要启动一个服务才行。
+下面这个例子展示了主线程和 Worker 线程之间如何进行通信。通信之间的数据可以是任意格式的。
 
 ```js
 // main.js
@@ -376,4 +376,10 @@ onmessage = function(e) {
 }
 ```
 
-通信之间的数据可以是任意格式的。
+验证这个例子时需要启动一个服务才行。我们可以使用 [http-server](https://juejin.im/post/5d8474baf265da03e4679a44) 来启动一个本地服务。启动服务之后，访问页面就不能按照平时那种方式直接默认浏览器打开了，而是应该通过 http-server 的启动服务界面打开。
+
+![http-server](../.vuepress/public/assets/image/javascript/http-server1.png 'http-server')  
+
+找到对应的文件夹，一步一步找到相应的页面，然后打开就可以看到线程间的通信了。
+
+![http-server](../.vuepress/public/assets/image/javascript/http-server2.png 'http-server') 
