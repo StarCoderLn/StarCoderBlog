@@ -547,11 +547,11 @@ aynscIterator.next().then(res => {
 })
 ```
 
-- **异步执行语句 for...await...of**
+- **异步执行语句 for await...of**
 
-for...of 方法能够遍历具有 Symbol.iterator 接口的同步迭代器数据，但是不能遍历异步迭代器。 ES9新增的 for...await...of 可以用来遍历具有 Symbol.asyncIterator 方法的数据结构，也就是异步迭代器，且会等待前一个成员的状态改变后才会遍历到下一个成员，相当于 async 函数内部的 await。
+for...of 方法能够遍历具有 Symbol.iterator 接口的同步迭代器数据，但是不能遍历异步迭代器。 ES9新增的 for await...of 可以用来遍历具有 Symbol.asyncIterator 方法的数据结构，也就是异步迭代器，且会等待前一个成员的状态改变后才会遍历到下一个成员，相当于 async 函数内部的 await。
 
-定义一个真正的异步迭代器，并使用 for...await...of 遍历它。
+定义一个真正的异步迭代器，并使用 for await...of 遍历它。
 
 ```js
 const asyncItems = {
@@ -649,37 +649,18 @@ fn()
   })
 ```
 
-**5-3. Rest / Spread**
+**5-3. Rest/Spread**
 
-ES6 时提供了扩展运算符...，但是仅用于数组。
+这个就是我们通常所说的[剩余参数](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/Rest_parameters)和[扩展运算符](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Spread_syntax)，两者的符号都是 `...` ，这在 ES6 中就已经引入了，但是 ES6 中的作用对象**仅限于数组和函数调用**。在 ES9 中，为**对象**提供了像数组一样的剩余参数和扩展运算符。
 
-```js
-const arr = [1, 2, 3]
-console.log([11, 22, ...arr]) // [11, 22, 1, 2, 3]
-```
-
-到了 ES9 ，就出现了和数组的一样的扩展运算符...，可用于对象或函数参数。
+- 剩余参数的使用
 
 ```js
 function fn(a, b, ...c) {
   console.log(a, b, c)
 }
-fn(1, 2, 3, 4, 5) // 1 2 [3, 4, 5]
-```
+fn(1, 2, 3, 4, 5) // 1 2 [3, 4, 5] 
 
-```js
-const obj = {
-  name: "shenzhen",
-  age: 4,
-  info: {
-    phone: 188888
-  }
-}
-const { name, ...infos } = obj
-console.log(name, infos) // shenzhen {age: 4, info: {…}}
-```
-
-```js
 const obj = {
   name: "shenzhen",
   age: 4,
@@ -693,6 +674,29 @@ function fn({ name, ...infos }) {
 fn(obj)
 ```
 
+- 在数组中使用扩展运算符
+
+```js
+const arr = [1, 2, 3]
+console.log([11, 22, ...arr]) // [11, 22, 1, 2, 3]
+```
+
+- 在对象中使用扩展运算符，解构
+
+```js
+const obj = {
+  name: "shenzhen",
+  age: 4,
+  info: {
+    phone: 188888
+  }
+}
+const { name, ...infos } = obj
+console.log(name, infos) // shenzhen {age: 4, info: {…}}
+```
+
+- 拷贝对象并增加新属性，类似对象合并
+
 ```js
 const obj = {
   name: "shenzhen",
@@ -705,7 +709,7 @@ const obj2 = { ...obj, address: "beijing" }
 console.log(obj2) // {name: "shenzhen", age: 4, info: {…}, address: "beijing"}
 ```
 
-利用这个可以实现对象浅拷贝。
+- 实现对象浅拷贝
 
 ```js
 const obj = {
@@ -725,6 +729,10 @@ console.log(obj.info.phone) // 177777
 ```
 
 **5-4. 对正则表达式增强**
+
+- `?<name>` —— 命名捕获组
+
+关于命名捕获组的说明可以参考这篇文章：[命名捕获组](https://esnext.justjavac.com/proposal/regexp-named-groups.html)
 
 假如有一个需求：将 YYYY-MM-DD 格式的年月日解析到数组中
 
@@ -755,7 +763,7 @@ const newDate = dateStr.replace(reg, `$<month>-$<day>-$<year>`)
 console.log(newDate) // 05-28-2020
 ```
 
-反向断言（后行断言）
+- **反向断言（后行断言）**
 
 假如有这样一个需求：需要捕获货币符号
 
@@ -772,12 +780,16 @@ console.log(res[0]) // $
 
 ```js
 const str = '$123'
-const reg = /(?<=\D)\d+/ // 后行断言格式的正则表达式 ?=pattern
+const reg = /(?<=\D)\d+/ // 后行断言格式的正则表达式 ?<=pattern
 const res = reg.exec(str)
 console.log(res[0]) // 123
 ```
 
-dotAll 方式
+- **增加 s/dotAll 模式**
+
+在 JavaScript 正则表达式中，`.` 可以用来匹配单个字符，但是有两种字符匹配不到：多字节 emoji 字符和行终结符（比如换行\n、回车\r等等）。
+
+在 ES9 中，新增了一个标志 `s` 用来表示 dotAll，以使 `.` 能够匹配任意单个字符。具体说明可参考这篇文章：[s/dotAll 模式](https://esnext.justjavac.com/proposal/regexp-dotall-flag.html)。
 
 ```js
 const str = 'shen\nzhen'
@@ -785,7 +797,7 @@ console.log(/shen.zhen/.test(str))  // false
 console.log(/shen.zhen/s.test(str)) // true
 ```
 
-汉字匹配
+- **汉字匹配**
 
 ```js
 const oldReg = /[\u4e00-\u9fa5]/  // ES9 之前的书写方式，既繁琐又不好记
@@ -795,16 +807,11 @@ console.log(oldReg.test(str)) // true
 console.log(newReg.test(str)) // true
 ```
 
-非转义序列的模板字符串
+- **非转义序列的模板字符串**
 
-一般的转义方式：
+具体说明可参考这篇文章：[非转义序列的模板字符串](https://esnext.justjavac.com/proposal/template-literal-revision.html)。
 
-```
-\u unicode转义
-\x 十六进制转义
-```
-
-ES6 提供了 [String.raw](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/raw)，具体用法需要再去详细了解。
+[String.raw()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/raw) 是一个模板字符串的标签函数，用来获取一个模板字符串的原始字符串，这是 ES6 提供的。
 
 ```js
 '\u{54}' // 'T'
