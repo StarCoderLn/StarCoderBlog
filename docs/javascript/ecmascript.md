@@ -817,3 +817,254 @@ console.log(newReg.test(str)) // true
 '\u{54}' // 'T'
 String.raw`\u{54}` // '\u{54}'
 ```
+
+**6. ES10 新特性**
+
+**6-1. flat() 和 flatMap()**
+
+（1）flat
+
+- [flat()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/flat) 方法可以用来扁平化一个嵌套数组，默认只能扁平化 1 层深度，可以传一个参数指定需要扁平化的深度层数。
+
+```js
+const arr = [1, 2, 3, [4, 5]]
+console.log(arr.flat())  // [1, 2, 3, 4, 5]
+
+const arr1 = [1, 2, 3, [4, 5, [6, 7]]]
+console.log(arr1.flat()) // [1, 2, 3, 4, 5, [6, 7]]
+
+// 指定 2 层深度
+const arr2 = [1, 2, 3, [4, 5, [6, 7]]]
+console.log(arr2.flat(2)) // [1, 2, 3, 4, 5, 6, 7]
+
+// 指定任意深度
+const arr3 = [1, 2, 3, [4, 5, [6, 7, [8, 9, [10, 11]]]]]
+console.log(arr3.flat(Infinity)) // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+```
+
+- flat() 还可以用来去除数组中的空项。
+
+```js
+const arr = [1, 2, , , 3]
+console.log(arr.flat()) // [1, 2, 3]
+```
+
+（2）flatMap
+
+[flatMap()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap) 方法首先使用映射函数映射每个元素，然后将结果压缩成一个新数组。它与 map 连着深度值为 1 的 flat 几乎相同，但 flatMap 通常在合并成一种方法的效率稍微高一些。默认也是只能扁平化 1 层深度。
+
+```js
+const arr = [1, 2, 3, 4]
+console.log(arr.map(x => [x * 2])) // [[2], [4], [6], [8]]
+console.log(arr.flatMap(x => [x * 2])) // [2, 4, 6, 8]
+console.log(arr.flatMap(x => [[x * 2]])) // [[2], [4], [6], [8]]
+```
+
+**6-2. Object.fromEntries()**
+
+[Object.fromEntries()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/fromEntries) 方法能够将一个键值对列表转换成一个对象。是 `Object.entries()` 的反转。
+
+```js
+// Map 转换为 Object
+const map = new Map([['first', 'shenzhen'], ['second', 'guangzhou']])
+console.log(Object.fromEntries(map)) // {first: "shenzhen", second: "guangzhou"}
+
+// Array 转换为 Object
+const arr = [ ['0', 'a'], ['1', 'b'], ['2', 'c'] ]
+console.log(Object.fromEntries(arr)) // {0: "a", 1: "b", 2: "c"}
+```
+
+**6-3. String.prototype.matchAll()**
+
+[String.prototype.matchAll()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/matchAll) 方法返回一个包含所有匹配正则表达式的结果及分组捕获组的迭代器。
+
+```js
+const str = 'guangzhou shenzhen shenzhen'
+const reg = /shen*/g
+
+// matchAll 之前的做法
+while ((matches = reg.exec(str)) !== null) {
+  console.log(`${matches[0]}-start=${matches.index}-end=${reg.lastIndex}`)
+}
+/*
+  shen-start=10-end=14
+  shen-start=19-end=23
+*/
+
+// 使用 matchAll 的做法
+let matches1 = str.matchAll(reg)
+console.log(matches1) // 返回一个迭代器：RegExpStringIterator {}
+for (const match1 of matches1) {
+  console.log(`${match1[0]}-start=${match1.index}-end=${match1.index + match1[0].length}`)
+}
+/*
+  shen-start=10-end=14
+  shen-start=19-end=23
+*/
+
+// 由于 matchAll 返回的是一个迭代器，所以也可以调用 next 方法
+let matches1 = str.matchAll(reg)
+console.log(matches1.next()) // {value: Array(1), done: false}
+console.log(matches1.next()) // {value: Array(1), done: false}
+console.log(matches1.next()) // {value: undefined, done: true}
+```
+
+matchAll 还可以用于更好的捕获分组。
+
+```js
+// 使用 match 时并没有捕获分组
+const reg = /s(h)en(zhen(\d?))/g
+const str = "shenzhen66shenzhen66"
+console.log(str.match(reg)) // ["shenzhen6", "shenzhen6"]
+
+// 使用 matchAll 就会捕获分组
+const arr = [...str.matchAll(reg)]
+console.log(arr[0]) // ["shenzhen6", "h", "zhen6", "6", index: 0, input: "shenzhen66shenzhen66", groups: undefined]
+console.log(arr[1]) // ["shenzhen6", "h", "zhen6", "6", index: 10, input: "shenzhen66shenzhen66", groups: undefined]
+```
+
+**6-4. String.prototype.trimStart() 和 String.prototype.trimEnd()**
+
+这两个方法的作用是去除字符串的首位空格。
+
+**6-5. String.prototype.description**
+
+```js
+// 通过工厂函数 Symbol() 创建符号时，可以选择通过参数提供字符串作为描述
+const sym = Symbol('description')
+
+// 之前获取描述的唯一方法是将符号转换为字符串
+console.log(String(sym)) // Symbol(description)
+
+// 现在可以通过 Symbol.prototype.description 直接获取
+console.log(sym.description) // description
+```
+
+**6-6. 省略 catch 参数**
+
+在 ES10 之前，我们必须通过语法为 catch 子句绑定异常变量，无论是否有必要。很多时候 catch 块是多余的。 ES10 提案使我们能够简单的把变量省略掉。
+
+```js
+// ES10 之前
+try {} catch(e) {}
+
+// 现在
+try {} catch {}
+```
+
+**6-7. 行分隔符（U + 2028）和段分隔符（U + 2029）符号现在允许在字符串文字中，与 JSON 匹配**
+
+JSON 可以包含行分隔符和段分隔符。但是目前只是草案，浏览器还未支持。
+
+```js
+const json = '{"name":"shenzhen\nguangzhou"}'
+console.log(json) // {"name":"shenzhen
+                   // guangzhou"}
+JSON.parse(json) // Uncaught SyntaxError: Unexpected token in JSON at position 17
+```
+
+**6-8. 更加友好的 JSON.stringify**
+
+如果输入 Unicode 格式但是超出范围的字符，在原先JSON.stringify返回格式错误的Unicode字符串。现在实现了一个改变JSON.stringify的第3阶段提案，因此它为其输出转义序列，使其成为有效Unicode（并以UTF-8表示）。
+对字符 U+D800 到 U+DFFF 处理。
+
+```js
+JSON.stringify("\UDEAD"); // JSON转义序列，应该输出'"\\UDEAD"'，但是现在浏览器还未支持，输出的是"UDEAD"
+```
+
+**6-9. Function.prototype.toString()**
+
+现在能够返回精确字符，包括空格和注释。
+
+```js
+function /*注释*/ foo /*注释*/() {}
+
+// 之前
+console.log(foo.toString()) // function foo(){}
+// 现在
+console.log(foo.toString()) // function /*注释*/ foo /*注释*/() {}
+```
+
+**6-10. BigInt —— 任意精度整数**
+
+[BigInt](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/BigInt) 是一种内置对象，它提供了一种方法来表示大于 `2^53 - 1` 的整数。这原本是 Javascript中可以用 Number 表示的最大数字。BigInt 可以表示任意大的整数。
+
+现在的基本数据类型就有 7 种：String、Number、Boolean、Null、Undefined、Symbol、BigInt。
+
+之前 js 中能表示的整数的最大值为：
+
+```js
+console.log(Number.MAX_SAFE_INTEGER) // 9007199254740991
+```
+
+但是现在有了 BigInt 之后，就不受这个限制了。
+
+```js
+// 创建 BigInt 类型数据的方式
+let num = 1n
+console.log('类型为：', typeof num) // 类型为： bigint
+console.log(num === 1) // false
+console.log(num == 1) // true
+
+// 另一种创建 BigInt 类型数据的方式
+const bigInt = BigInt(10)
+console.log(bigInt) // 10n
+
+// 只能和同类型的数据进行运算
+let num1 = 10n
+console.log(num - num1) // -9n
+console.log(num - 1) // Uncaught TypeError: Cannot mix BigInt and other types, use explicit conversions
+
+// 使用 Object 包装后， BigInt 被认为是一个普通 "object"
+console.log(typeof Object(1n) === 'object') // true
+```
+
+**6-11. 标准化 globalThis 对象**
+
+可以在任何平台访问全局属性。
+
+```js
+const getGlobal = function() {
+  if (typeof self != "unefined") {
+    return self
+  }
+  if (typeof window != "unefined") {
+    return window
+  }
+  if (typeof global != "unefined") {
+    return global
+  }
+  throw new Error()
+}
+
+console.log(globalThis) // 谷歌浏览器中打印出来是一个 window 对象，但是在 node 中还未支持这个对象
+```
+
+题外话：Array.prototype.sort() 和 TimSort()
+
+Array.prototype.sort 是现有的浏览器排序方式，但是是不稳定的排序，最坏的时间复杂度可为 O(n^2)；新的 v8 引擎实现了一个新的 TimSort() 方法，这是稳定的排序，时间复杂度为 O(nlogn)，可以阅读 V8 源码学习。这点也需要了解下。
+
+```js
+// 
+const arr = [
+  { name: "w", age: 18 },
+  { name: "shenzhen", age: 4 },
+  { name: "www", age: 4 }
+];
+arr.sort((a, b) => a.age - b.age)
+console.log(arr) // 由于在谷歌浏览器中已经使用了新的排序引擎 TimSort，所以结果是稳定排序
+
+// 非稳定的排序，因为 shenzhen 和 www 的 age 都是 4，但是排序后两者的位置换了
+[
+  { name: "www", age: 4 },
+  { name: "shenzhen", age: 4 },
+  { name: "w", age: 18 }
+]
+
+// 稳定的排序，shenzhen 和 www 两者的位置没有变化
+[
+  { name: "shenzhen", age: 4 },
+  { name: "www", age: 4 },
+  { name: "w", age: 18 }
+];
+```

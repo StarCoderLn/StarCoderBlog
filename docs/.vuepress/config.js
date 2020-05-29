@@ -69,7 +69,8 @@ module.exports = {
         title: 'JavaScript',
         collapsable: false,
         children: [
-          { title: 'ECMAScript', path: '/javascript/ecmascript' }
+          { title: 'ECMAScript', path: '/javascript/ecmascript' },
+          { title: 'JavaScript常用工具方法', path: '/javascript/jsUtils' }
         ]
       }
     ],
