@@ -51,7 +51,9 @@ module.exports = {
         title: '函数式编程',
         collapsable: false,
         children: [
-          { title: '看完就够用的函数式编程', path: '/fp/enoughFp' }
+          { title: '《看完就够用的函数式编程》', path: '/fp/enoughFp' },
+          { title: '《JavaScript轻量级函数式编程》', path: '/fp/lightFp' },
+          { title: '函数式编程学习资料', path: '/fp/fp' }
         ]
       },
       {

@@ -1,0 +1,1 @@
+[函数式编程术语](https://github.com/shfshanyue/fp-jargon-zh#product-type)
