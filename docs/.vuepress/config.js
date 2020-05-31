@@ -71,7 +71,8 @@ module.exports = {
         children: [
           { title: 'ECMAScript', path: '/javascript/ecmascript' },
           { title: 'JavaScript常用工具方法', path: '/javascript/jsUtils' },
-          { title: 'JavaScript与QA工程师', path: '/javascript/qa' }
+          { title: 'JavaScript与QA工程师', path: '/javascript/qa' },
+          { title: '手写Promise', path: '/javascript/promise' }
         ]
       }
     ],
