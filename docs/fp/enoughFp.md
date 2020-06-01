@@ -792,7 +792,7 @@ loudLastUpper(['jumpkick', 'roundhouse', 'uppercut']);
 //=> 'UPPERCUT!'
 ```
 
-结合律的一大好处是任何一个函数分组都可以被拆开来，然后再以它们自己的组合方式打包在一起。如果重构前面的例子，可以是：
+结合律的一大好处是**任何一个函数分组都可以被拆开来，然后再以它们自己的组合方式打包在一起**。如果重构前面的例子，可以是：
 
 ```js
 var loudLastUpper = compose(exclaim, toUpperCase, head, reverse);
@@ -809,7 +809,7 @@ var loudLastUpper = compose(angry, last);
 // 更多变种...
 ```
 
-如何使用组合，通常来说，最佳实践就是让组合可重用，就像 last 和 angry 那样。
+如何使用组合，通常来说，最佳实践就是**让组合可重用**，就像 last 和 angry 那样。
 
 **2. pointfree**
 
@@ -845,3 +845,238 @@ initials("hunter stockton thompson");
 ```
 
 pointfree 模式能够帮助我们减少不必要的命名，让代码保持简洁和通用。对函数式代码来说，pointfree 是非常好的石蕊试验，因为它能告诉我们一个函数是否是接受输入返回输出的小函数。比如，while 循环是不能组合的。不过你也要警惕，pointfree 就像是一把双刃剑，有时候也能混淆视听。并非所有的函数式代码都是 pointfree 的，不过这没关系。可以使用它的时候就使用，不能使用的时候就用普通函数。
+
+**3. debug**
+
+组合的一个常见错误是，在没有局部调用之前，就组合类似 map 这样接受两个参数的函数。
+
+```js
+var compose = function(f, g) {
+  return function(x) {
+    return f(g(x));
+  };
+};
+var toUpperCase = function(x) {
+  return x.toUpperCase();
+};
+var exclaim = function(x) {
+  return x + '!';
+};
+var angry = compose(exclaim, toUpperCase);
+
+// 错误做法：我们传给了 `angry` 一个数组，根本不知道最后传给 `map` 的是什么东西。
+var latin = compose(map, angry, reverse);
+
+latin(["frog", "eyes"]);
+// error
+
+// 正确做法：每个函数都接受一个实际参数。
+var latin = compose(map(angry), reverse);
+
+latin(["frog", "eyes"]);
+// ["EYES!", "FROG!"])
+```
+
+如果在 debug 组合的时候遇到了困难，那么可以使用下面这个实用的，但是不纯的 `trace` 函数来追踪代码的执行情况。
+
+```js
+var trace = curry(function(tag, x){
+  console.log(tag, x);
+  return x;
+});
+
+var dasherize = compose(join('-'), toLower, split(' '), replace(/\s{2,}/ig, ' '));
+
+dasherize('The world is a vampire');
+// TypeError: Cannot read property 'apply' of undefined
+```
+
+这里报错了，来 trace 下：
+
+```js
+var dasherize = compose(join('-'), toLower, trace("after split"), split(' '), replace(/\s{2,}/ig, ' '));
+// after split [ 'The', 'world', 'is', 'a', 'vampire' ]
+```
+
+通过追踪的结果可以发现，toLower 的参数是一个数组，所以需要先用 map 调用一下它。
+
+```js
+var dasherize = compose(join('-'), map(toLower), split(' '), replace(/\s{2,}/ig, ' '));
+
+dasherize('The world is a vampire');
+
+// 'the-world-is-a-vampire'
+```
+
+trace 函数允许我们在某个特定的点观察数据以便 debug。
+
+组合背后其实是有一个强大的理论在做支撑的，这个理论就是**范畴学**。
+
+**4. 范畴学**
+
+范畴学（category theory）是数学中的一个抽象分支，能够**形式化**诸如集合论（set theory）、类型论（type theory）、群论（group theory）以及逻辑学（logic）等**数学分支中的一些概念**。范畴学主要处理**对象**（object）、**态射**（morphism）和**变化式**（transformation），而这些概念跟编程的联系非常紧密。
+
+在范畴学中，有一个概念叫范畴。有着以下这些组件（component）的搜集（collection）就构成了一个范畴：
+
+- 对象的搜集
+- 态射的搜集
+- 态射的组合
+- `identity` 这个独特的态射
+
+范畴学抽象到足以模拟任何事物。下面看看如何把范畴学应用到类型和函数上。
+
+**对象的搜集**
+
+对象就是数据类型，例如 String、Boolean、Number 和 Object 等等。通常我们把数据类型视作所有可能的值的一个集合（set）。像 Boolean 就可以看作是 [true, false] 的集合，Number 可以是所有实数的一个集合。把类型当作集合对待是有好处的，因为我们可以利用集合论（set theory）处理类型。
+
+**态射的搜集**
+
+态射是标准的、普通的纯函数。
+
+**态射的组合**
+
+前面已经知道组合函数 compose 是符合结合律的，其实组合律是在范畴学中对任何组合都适用的一个特性。
+
+```js
+var g = function(x){ return x.length; };
+var f = function(x){ return x === 4; };
+var isFourLetterWord = compose(f, g);
+```
+
+**identity 这个独特的态射**
+
+下面是一个名为 `id` 的实用函数。这个函数接受任何输入然后原封不动地返回它：
+
+```js
+var id = function(x) {
+  return x;
+};
+```
+
+id 函数能够跟组合很好的配合使用。下面这个特性对所有的一元函数（unary function）（一元函数：只接受一个参数的函数）f 都成立：
+
+```js
+// identity
+
+compose(id, f) == compose(f, id) == f // true
+```
+
+组合像一系列管道那样把不同的函数联系在一起，数据就可以也必须在其中流动——毕竟纯函数就是输入对输出。组合是高于其他所有原则的设计原则，这是因为组合让我们的代码简单而富有可读性。另外范畴学将在应用架构、模拟副作用和保证正确性方面扮演重要角色。
+
+下面是一些练习题
+
+```js
+require('../../support');
+var _ = require('ramda');
+var accounting = require('accounting');
+
+// 示例数据
+var CARS = [
+    {name: "Ferrari FF", horsepower: 660, dollar_value: 700000, in_stock: true},
+    {name: "Spyker C12 Zagato", horsepower: 650, dollar_value: 648000, in_stock: false},
+    {name: "Jaguar XKR-S", horsepower: 550, dollar_value: 132000, in_stock: false},
+    {name: "Audi R8", horsepower: 525, dollar_value: 114200, in_stock: false},
+    {name: "Aston Martin One-77", horsepower: 750, dollar_value: 1850000, in_stock: true},
+    {name: "Pagani Huayra", horsepower: 700, dollar_value: 1300000, in_stock: false}
+  ];
+
+// 练习 1:
+// ============
+// 使用 _.compose() 重写下面这个函数。提示：_.prop() 是 curry 函数
+var isLastInStock = function(cars) {
+  var last_car = _.last(cars);
+  return _.prop('in_stock', last_car);
+};
+
+// 练习 2:
+// ============
+// 使用 _.compose()、_.prop() 和 _.head() 获取第一个 car 的 name
+var nameOfFirstCar = undefined;
+
+
+// 练习 3:
+// ============
+// 使用帮助函数 _average 重构 averageDollarValue 使之成为一个组合
+var _average = function(xs) { return reduce(add, 0, xs) / xs.length; }; // <- 无须改动
+
+var averageDollarValue = function(cars) {
+  var dollar_values = map(function(c) { return c.dollar_value; }, cars);
+  return _average(dollar_values);
+};
+
+
+// 练习 4:
+// ============
+// 使用 compose 写一个 sanitizeNames() 函数，返回一个下划线连接的小写字符串：例如：sanitizeNames(["Hello World"]) //=> ["hello_world"]。
+
+var _underscore = replace(/\W+/g, '_'); //<-- 无须改动，并在 sanitizeNames 中使用它
+
+var sanitizeNames = undefined;
+
+
+// 彩蛋 1:
+// ============
+// 使用 compose 重构 availablePrices
+
+var availablePrices = function(cars) {
+  var available_cars = _.filter(_.prop('in_stock'), cars);
+  return available_cars.map(function(x){
+    return accounting.formatMoney(x.dollar_value);
+  }).join(', ');
+};
+
+
+// 彩蛋 2:
+// ============
+// 重构使之成为 pointfree 函数。提示：可以使用 _.flip()
+
+var fastestCar = function(cars) {
+  var sorted = _.sortBy(function(car){ return car.horsepower }, cars);
+  var fastest = _.last(sorted);
+  return fastest.name + ' is the fastest';
+};
+```
+
+## 示例应用
+
+**1. 声明式代码**
+
+与命令式不同，声明式意味着我们要写表达式，而不是一步一步的指示。
+
+以 SQL 为例，它就没有“先做这个，再做那个”的命令，有的只是一个指明我们想要从数据库取什么数据的表达式。至于如何取数据则是由它自己决定的。以后数据库升级也好，SQL 引擎优化也好，根本不需要更改查询语句。这是因为，有多种方式解析一个表达式并得到相同的结果。
+
+以下几个例子可以帮助理解什么是声明式。
+
+```js
+// 命令式
+var makes = [];
+for (i = 0; i < cars.length; i++) {
+  makes.push(cars[i].make);
+}
+
+// 声明式
+var makes = cars.map(function(car) { return car.make; });
+```
+
+命令式的循环要求你必须先实例化一个数组，而且执行完这个实例化语句之后，解释器才继续执行后面的代码。然后再直接迭代 cars 列表，手动增加计数器，把各种零零散散的东西都展示出来。
+
+而声明式的代码是一个表达式，它对执行顺序没有要求。而且，map 函数如何进行迭代，返回的数组如何收集，都有很大的自由度。它指明的是做什么，不是怎么做。
+
+再看一个例子。
+
+```js
+// 命令式
+var authenticate = function(form) {
+  var user = toUser(form);
+  return logIn(user);
+};
+
+// 声明式
+var authenticate = compose(logIn, toUser);
+```
+
+命令式代码告诉我们每一步该做什么，这是一种一步接一步的执行方式。而 compose 表达式只是简单地指出了这样一个事实：用户验证是 toUser 和 logIn 两个行为的组合。这再次说明，声明式**为潜在的代码更新提供了支持**，使得我们的应用代码成为了一种高级规范（high level specification）。
+
+因为声明式代码不指定执行顺序，所以它天然地适合进行并行运算。**它与纯函数一起解释了为何函数式编程是未来并行计算的一个不错选择**——我们真的不需要做什么就能实现一个并行／并发系统。
+
+**2. 一个函数式的 flicker**
