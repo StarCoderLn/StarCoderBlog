@@ -1079,4 +1079,240 @@ var authenticate = compose(logIn, toUser);
 
 因为声明式代码不指定执行顺序，所以它天然地适合进行并行运算。**它与纯函数一起解释了为何函数式编程是未来并行计算的一个不错选择**——我们真的不需要做什么就能实现一个并行／并发系统。
 
-**2. 一个函数式的 flicker**
+**2. 一个函数式的 flickr**
+
+下面以一种声明式的、可组合的方式创建一个示例应用。暂时会使用一点点副作用，但是会把副作用的程度降到最低，让它们与纯函数代码分离开来。这个示例应用是一个浏览器 widget，功能是从 flickr 获取图片并在页面上展示。
+
+首先是 html：
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.11/require.min.js"></script>
+    <script src="flickr.js"></script>
+  </head>
+  <body></body>
+</html>
+```
+
+flickr.js 如下：
+
+```js
+requirejs.config({
+  paths: {
+    ramda: 'https://cdnjs.cloudflare.com/ajax/libs/ramda/0.13.0/ramda.min',
+    jquery: 'https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min'
+  }
+});
+
+require([
+  'ramda',
+  'jquery'
+],
+function (_, $) {
+  var trace = _.curry(function(tag, x) {
+    console.log(tag, x);
+    return x;
+  });
+  // app goes here
+});
+```
+
+这里使用了 [ramda](https://ramdajs.com/) 这个类库，它提供了 compose、curry 等很多函数。模块加载选择的是 requirejs。此外，trace 函数也写好了，便于 debug。
+
+这个示例应用将要做4件事：
+
+- 根据特定搜索关键字构造 url
+- 向 flickr 发送 api 请求
+- 把返回的 json 转为 html 图片
+- 把图片放到屏幕上
+
+上面提到了两个不纯的动作，即从 flickr 的 api 获取数据和在屏幕上放置图片这两件事。我们先来定义这两个动作，这样就能隔离它们了。
+
+```js
+var Impure = {
+  getJSON: _.curry(function(callback, url) {
+    $.getJSON(url, callback)
+  }),
+
+  setHtml: _.curry(function(sel, html) {
+    $(sel).html(html)
+  })
+}
+```
+
+这里只是简单地包装了一下 jQuery 的 getJSON 方法，把它变为一个 curry 函数，还有就是把参数位置也调换了下。这些方法都在 Impure 命名空间下，这样我们就知道它们都是危险函数。在后面的例子中，我们会把这两个函数变纯。
+
+下一步是构造 url 传给 Impure.getJSON 函数。
+
+```js
+var url = function (term) {
+  return 'https://api.flickr.com/services/feeds/photos_public.gne?tags=' + term + '&format=json&jsoncallback=?';
+};
+```
+
+下面写一个 app 函数发送请求并把内容放置到屏幕上。
+
+```js
+var app = _.compose(Impure.getJSON(trace('response')), url);
+
+app('cat');
+```
+
+这会调用 url 函数，然后把字符串传给 getJSON 函数。getJSON 已经局部应用了 trace，加载这个应用将会把请求的响应显示在 console 里。
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp3.png "Functional Programming")
+
+我们想要从这个 json 里构造图片，看起来 src 都在 items 数组中的每个 media 对象的 m 属性上。
+
+我们可以使用 ramda 的一个通用 getter 函数 `_.prop()` 来获取这些嵌套的属性。但是为了知道这个函数做了什么事情，我们自己实现一个 prop 看看：
+
+```js
+var prop = _.curry(function(property, object) {
+  return object[property]
+})
+```
+
+可以看到这个函数只是用 [] 来获取一个对象的属性而已，下面就利用这个函数来获取图片的 src。
+
+```js
+var mediaUrl = _.compose(_.prop('m'), _.prop('media'))
+
+var srcs = _.compose(_.map(mediaUrl), _.prop('items'))
+```
+
+一旦得到了 items，就必须使用 map 来分解每一个 url；这样就得到了一个包含所有 src 的数组。把它和 app 联结起来，打印结果看看。
+
+```js
+var renderImages = _.compose(Impure.setHtml('body'), srcs)
+
+var app = _.compose(Impure.getJSON(renderImages), url)
+```
+
+这里新建了一个组合，这个组合会调用 srcs 函数，并把返回的结果设置为 body 的 html。其中，trace 也被替换成了 renderImages，因为已经有了除 json 以外的原始数据。这样会把所有的 src 直接显示在屏幕上。
+
+最后一步是把这些 src 变为真正的图片。
+
+```js
+var img = function(url) {
+  return $(`<img />`, { src: url })
+}
+```
+
+jQuery 的 html() 方法接受标签数组为参数，所以我们只须把 src 转换为 img 标签然后传给 setHtml 即可。
+
+```js
+var images = _.compose(_.map(img), srcs)
+
+var renderImages = _.compose(Impure.setHtml('body'), images)
+
+var app = _.compose(Impure.getJSON(renderImages), url)
+```
+
+到这里，整个应用就完成了。
+
+下面是完整的代码：
+
+```js
+requirejs.config({
+  paths: {
+    ramda: 'https://cdnjs.cloudflare.com/ajax/libs/ramda/0.13.0/ramda.min',
+    jquery: 'https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min'
+  }
+});
+
+require([
+    'ramda',
+    'jquery'
+  ],
+  function (_, $) {
+    ////////////////////////////////////////////
+    // Utils
+
+    var Impure = {
+      getJSON: _.curry(function(callback, url) {
+        $.getJSON(url, callback);
+      }),
+
+      setHtml: _.curry(function(sel, html) {
+        $(sel).html(html);
+      })
+    };
+
+    var img = function (url) {
+      return $('<img />', { src: url });
+    };
+
+    var trace = _.curry(function(tag, x) {
+      console.log(tag, x);
+      return x;
+    });
+
+    ////////////////////////////////////////////
+
+    var url = function (t) {
+      return 'https://api.flickr.com/services/feeds/photos_public.gne?tags=' + t + '&format=json&jsoncallback=?';
+    };
+
+    var mediaUrl = _.compose(_.prop('m'), _.prop('media'));
+
+    var srcs = _.compose(_.map(mediaUrl), _.prop('items'));
+
+    var images = _.compose(_.map(img), srcs);
+
+    var renderImages = _.compose(Impure.setHtml("body"), images);
+
+    var app = _.compose(Impure.getJSON(renderImages), url);
+
+    app("cats");
+  });
+```
+
+这段代码展示的就是完完全全的声明式规范，**只说做什么，不说怎么做**。我们可以把每一行代码都视作一个等式，变量名所代表的属性就是等式的含义。我们可以利用这些属性去推导分析和重构这个应用。
+
+**3. 有原则的重构**
+
+上面的代码是有优化空间的，我们获取 url map 了一次，把这些 url 变为 img 标签又 map 了一次。关于 map 和组合是有定律的。
+
+```js
+// map 的组合律
+var law = compose(map(f), map(g)) == map(compose(f, g))
+```
+
+可以利用这个定律优化代码，进行一次有原则的重构。
+
+```js
+// 原有代码
+var mediaUrl = _.compose(_.prop('m'), _.prop('media'))
+
+var srcs = _.compose(_.map(mediaUrl), _.prop('items'))
+
+var images = _.compose(_.map(img), srcs)
+```
+
+根据等式推导和纯函数的特性，可以内联调用 srcs 和 images，也就是把 map 调用排列起来。
+
+```js
+var mediaUrl = _.compose(_.prop('m'), _.prop('media'))
+
+var images = _.compose(_.map(img), _.map(mediaUrl), _.prop('items'))
+```
+
+把 map 排成一列之后就可以应用组合律了。
+
+```js
+var mediaUrl = _.compose(_.prop('m'), _.prop('media'))
+
+var images = _.compose(_.map(_.compose(img, mediaUrl)), _.prop('items'))
+```
+
+这样只需要一次循环就可以把每一个对象都转为 img 标签了。把 map 调用的 compose 取出来放到外面，提高下可读性。
+
+```js
+var mediaUrl = _.compose(_.prop('m'), _.prop('media'))
+
+var mediaToImg = _.compose(img, mediaUrl)
+
+var images = _.compose(_.map(mediaToImg), _.prop('items'))
+```
