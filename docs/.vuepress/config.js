@@ -70,9 +70,9 @@ module.exports = {
         collapsable: false,
         children: [
           { title: 'ECMAScript', path: '/javascript/ecmascript' },
+          { title: '手写Promise', path: '/javascript/promise' },
           { title: 'JavaScript常用工具方法', path: '/javascript/jsUtils' },
           { title: 'JavaScript与QA工程师', path: '/javascript/qa' },
-          { title: '手写Promise', path: '/javascript/promise' },
           { title: 'JavaScript基础测试', path: '/javascript/jsTest' }
         ]
       }
