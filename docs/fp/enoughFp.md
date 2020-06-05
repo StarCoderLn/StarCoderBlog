@@ -1493,3 +1493,203 @@ compose(map(f), filter(compose(p, f))) == compose(filter(p), map(f));
 ```
 
 这个例子中有两个约束：Eq 和 Show。它们保证了我们可以检查不同的 a 是否相等，并在有不相等的情况下打印出其中的差异。
+
+## 容器
+
+通过前面几章的学习，我们已经知道了如何书写函数式的程序，即通过管道把数据在一系列纯函数间传递的程序。并且，这些程序就是声明式的行为规范。但是，我们还不知道控制流（control flow）、异常处理（error handling）、异步操作（asynchronous actions）、状态（state）和作用（effect）。本章将对这些抽象概念赖以建立的基础作一番探究。
+
+**1. 什么是容器**
+
+首先我们创建一个容器，这个容器**能够装载任意类型的值**。它是一个对象，但我们不会为它添加面向对象观念下的属性和方法。它的作用就是一个存放宝贵数据的特殊盒子。
+
+```js
+var Container = function (x) {
+  this._value = x
+}
+Container.of = function (x) {
+  return new Container(x)
+}
+```
+
+在这段代码中，Container 就是一个容器，Container.of 是构造器（constructor）。这样就不需要到处写 new 关键字了。但实际上不能这么简单的看待 of 函数，只是暂时先认为它是把值放到容器里的一种方式。
+
+```js
+Container.of(3) // Container(3)
+
+Container.of('hotdogs') // Container('hotdogs')
+
+Container.of(Container.of({name: 'yoda'})) // Container(Container({name: "yoda" }))
+```
+
+上面的结果是在浏览器中的运行结果，在 node 中的运行结果是下面这样的：
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp4.png "Functional Programming")
+
+可以看到 Chrome 打印出来的才是正确的，不过这并不重要，重要的是我们需要理解 Container 是什么样的。
+
+还有下面几点需要注意的：
+
+- Container 是个**只有一个属性**的对象。尽管容器可以有不止一个的属性，但大多数容器还是只有一个。这里很随意的把 Container 的这个属性命名为 _value。
+
+- _value 不能是某个特定的类型。在上面一开始提到容器的时候就说到了，容器能够装载任意类型的值。
+
+- 数据一旦存放到 Container，就会一直存在那儿。可以用 ._value 来获取数据，但是这样做有悖初衷。
+
+**2. 第一个 functor**
+
+一旦容器里有了值，不管这个值是什么，我们就需要一种方法来让别的函数能够操作它。
+
+```js
+// (a -> b) -> Container(a) -> Container(b)
+Container.prototype.map = function (f) {
+  return Container.of(f(this._value))
+}
+```
+
+这个 map 跟数组的 map 一样，除了前者的参数是 Container a 而后者是 [a]。它们的使用方法几乎一致：
+
+```js
+var Container = function (x) {
+  this._value = x
+}
+
+Container.of = function (x) {
+  return new Container(x)
+}
+
+Container.prototype.map = function (f) {
+  return Container.of(f(this._value))
+}
+
+Container.of(2).map(function (two) {
+  return two + 2
+}) // 原书写的是输出 Container(4)，但是我在 Chrome 和 node 中看到的都是 Container {_value: 4}
+
+Container.of('flamethrowers').map(function (s) {
+  return s.toUpperCase()
+}) // 原书：Container("FLAMETHROWERS")，Chorme 和 node：Container {_value: "FLAMETHROWERS"}
+
+Container.of('bombs').map(concat(' away')).map(_.prop('length')) // Container(10)
+```
+
+这种方法能够让我们在不离开 Container 的情况下操作容器里的值。Container 里的值传递给 map 函数之后，就可以任我们操作；操作结束后，为了防止意外再把它放回它所属的 Container。这样做的好处是，我们能连续地调用 map，运行任何我们想运行的函数。甚至还可以改变值的类型，就像上面最后一个例子中那样。
+
+如果我们能够一直调用 map，那不就是跟组合很像吗。这里面其实就是 functor 在起作用。
+
+> functor 是实现了 map 函数并遵守一些特定规则的容器类型。
+
+把值装进一个容器，而且只能使用 map 来处理它，这么做其实就相当于让容器自己去运用函数，好处是抽象，对函数运用的抽象。当 map 一个函数时，我们请求容器来运行这个函数。
+
+**3. 另一种 functor —— Maybe**
+
+通常称 Container 为 `Identity`，它与 id 函数的作用相同。除此之外，还有另外一种 functor，那就是实现了 map 函数的类似容器的数据类型，这种 functor 在调用 map 的时候能够提供非常有用的行为。下面就来定义一个这样的 functor。
+
+```js
+var Maybe = function (x) {
+  this._value = x
+}
+
+Maybe.of = function (x) {
+  return new Maybe(x)
+}
+
+Maybe.prototype.isNothing = function () {
+  return (this._value === null || this._value === undefined)
+}
+
+Maybe.prototype.map = function (f) {
+  return this.isNothing() ? Maybe.of(null) : Maybe.of(f(this._value))
+}
+```
+
+Maybe 与 Container 看起来非常类似，但是有一点不同的是：**Maybe 会先检查自己的值是否为空，然后才调用传进来的函数**。这样我们在使用 map 的时候就能避免恼人的空值了（注意这个实现出于教学目的做了简化）。
+
+```js
+Maybe.of('Malkovich Malkovich').map(match(/a/ig)) // Maybe(['a', 'a'])
+
+Maybe.of(null).map(match(/a/ig)) // Maybe(null)
+
+Maybe.of({ name: 'Boris' }).map(_.prop('age')).map(add(10)) // Maybe(null)
+
+Maybe.of({ name: 'Dinah', age: 14 }).MAP(_.prop('age')).map(add(10)) // Maybe(24)
+```
+
+注意看，当传给 map 的值是 null 时，代码并没有抛出错误。这是因为每一次 Maybe 要调用函数的时候，都会先检查它自己的值是否为空。
+
+这种点记法（dot notation syntax）已经足够函数式了，但是正如在第 1 部分指出的那样，我们更想保持一种 pointfree 的风格。map 完全有能力以 curry 函数的方式来“代理”任何 functor：
+
+```js
+// map :: Functor f => (a -> b) -> f a -> f b
+var map = curry(function (f, any_functor_at_all) {
+  return any_functor_at_all.map(f)
+})
+```
+
+这样我们就可以像平常一样使用组合，同时也能正常使用 map 了。这里在类型标签中偷偷引入了一个额外的标记：Functor f =>。这个标记告诉我们 f 必须是一个 functor。
+
+在实际当中，Maybe 最常用在那些可能会无法成功返回结果的函数中。
+
+```js
+// safeHead :: [a] -> Maybe(a)
+var safeHead = function (xs) {
+  return Maybe.of(xs[0])
+}
+
+var streetName = compose(map(_.prop('street')), safeHead, _.prop('addresses'))
+
+streetName({ addresses: [] }) // Maybe(null)
+
+streetName({ addresses: [{street: 'Shady Ln.', number: 4201}] }) // Maybe('Shady Ln.')
+```
+
+safeHead 与一般的 _.head 类似，但是增加了类型安全保证。因为它引入了 Maybe，能够检测空值 null ，并返回一个 Maybe。因为我们想要的值都深藏在 Maybe 对象中，而且只能通过 map 来操作它。
+
+有时候函数可以明确返回一个 Maybe(null) 来表明失败，比如：
+
+```js
+// withdraw :: Number -> Account -> Maybe(Account)
+var withdraw = curry(function (amount, account) {
+  return account.balance >= amount ?
+    Maybe.of({ balance: account.balance - amount }) :
+    Maybe.of(null)
+})
+
+//  finishTransaction :: Account -> String
+var finishTransaction = compose(remainingBalance, updateLedger) // 假定这两个函数已经在别处定义好了
+
+//  getTwenty :: Account -> Maybe(String)
+var getTwenty = compose(map(finishTransaction), withdraw(20))
+
+getTwenty({ balance: 200.00}) // Maybe("Your balance is $180.00")
+
+getTwenty({ balance: 10.00}) // Maybe(null)
+```
+
+当余额不够时，withdraw 就会返回一个 Maybe(null)。withdraw 也显示出了它的多变性，使得我们后续的操作只能用 map 来进行。这个例子与前面例子不同的地方在于，这里的 null 是有意的。我们不用 Maybe(String) ，而是用 Maybe(null) 来发送失败的信号，这样程序在收到信号后就能立刻停止执行。
+
+这一点很重要：如果 withdraw 失败了，map 就会切断后续代码的执行，因为它根本就不会运行传递给它的函数，即 finishTransaction。这正是预期的效果：如果取款失败，我们并不想更新或者显示账户余额。
+
+那么，如何释放容器里的值呢？
+
+如果我们想返回一个自定义的值然后还能继续执行后面的代码的话，是可以做到的；要达到这一目的，可以借助一个帮助函数 maybe：
+
+```js
+//  maybe :: b -> (a -> b) -> Maybe a -> b
+var maybe = curry(function (x, f, m) {
+  return m.isNothing() ? x : f(m.__value)
+})
+
+//  getTwenty :: Account -> String
+var getTwenty = compose(
+  maybe("You're broke!", finishTransaction), withdraw(20)
+)
+
+
+getTwenty({ balance: 200.00 }) // "Your balance is $180.00"
+
+getTwenty({ balance: 10.00 }) // "You're broke!"
+```
+
+这样就可以要么返回一个静态值（与 finishTransaction 返回值的类型一致），要么继续愉快地在没有 Maybe 的情况下完成交易。maybe 使我们得以避免普通 map 那种命令式的 if/else 语句：if(x !== null) { return f(x) }。
+
+总之，Maybe 能够非常有效地帮助我们增加函数的安全性。还有一点需要注意的，Maybe 的“真正”实现会把它分为两种类型：一种是非空值，另一种是空值。这种实现允许我们遵守 map 的 parametricity 特性，因此 null 和 undefined 依然能够被 map 调用，functor 里的值所需的那种普遍性条件也能得到满足。所以我们会经常看到 Some(x) / None 或者 Just(x) / Nothing 这样的容器类型在做空值检查，而不是 Maybe。

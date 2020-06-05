@@ -9,10 +9,55 @@ var a = 3
 function a () {
   alert(10)
 }
-alert(10)
+alert(a)
 a = 6
 a()
 ```
+
+**答案解析：**
+
+- `undefined` 和 `not defined` 不是一个东西。undefined 说明这个变量没赋值，但是是存在的；not defined 报错，说明这个变量压根就不存在。
+
+- js 在预编译的时候会把所有带 var 的变量**提升到函数顶端**。下面就是 js 中的私有变量，在函数外部是访问不到的。
+
+```js
+function init () {
+  // 私有变量
+  var a = 20
+}
+init()
+console.log(a) // a is not defined
+```
+
+- **函数和变量都会提升，但是函数提升的优先级高于变量提升**。
+
+下面这样写，函数能够正常执行并输出123。
+
+```js
+function test () {
+  console.log(123)
+}
+test() // 123
+```
+
+但是变量按照这样写的话就不行了。
+
+```js
+console.log(a)
+var a = 20 // undefined
+```
+
+这是因为变量还有**词法作用域**。如果改成下面这样就可以了。
+
+```js
+var a
+console.log(a) // 20
+a = 20
+```
+
+- 
+
+function a() { alert(10) }、10、3、报错
 
 ```js
 var x = 1, y = 0, z = 0
