@@ -1580,7 +1580,7 @@ Container.of('bombs').map(concat(' away')).map(_.prop('length')) // Container(10
 
 把值装进一个容器，而且只能使用 map 来处理它，这么做其实就相当于让容器自己去运用函数，好处是抽象，对函数运用的抽象。当 map 一个函数时，我们请求容器来运行这个函数。
 
-**3. 另一种 functor —— Maybe**
+**3. 第二种 functor —— Maybe**
 
 通常称 Container 为 `Identity`，它与 id 函数的作用相同。除此之外，还有另外一种 functor，那就是实现了 map 函数的类似容器的数据类型，这种 functor 在调用 map 的时候能够提供非常有用的行为。下面就来定义一个这样的 functor。
 
@@ -1693,3 +1693,352 @@ getTwenty({ balance: 10.00 }) // "You're broke!"
 这样就可以要么返回一个静态值（与 finishTransaction 返回值的类型一致），要么继续愉快地在没有 Maybe 的情况下完成交易。maybe 使我们得以避免普通 map 那种命令式的 if/else 语句：if(x !== null) { return f(x) }。
 
 总之，Maybe 能够非常有效地帮助我们增加函数的安全性。还有一点需要注意的，Maybe 的“真正”实现会把它分为两种类型：一种是非空值，另一种是空值。这种实现允许我们遵守 map 的 parametricity 特性，因此 null 和 undefined 依然能够被 map 调用，functor 里的值所需的那种普遍性条件也能得到满足。所以我们会经常看到 Some(x) / None 或者 Just(x) / Nothing 这样的容器类型在做空值检查，而不是 Maybe。
+
+**4. “纯”错误处理——Either**
+
+错误处理通常使用 Either 这个 functor。
+
+```js
+var Left = function (x) {
+  this._value = x
+}
+
+Left.of = function (x) {
+  return new Left(x)
+}
+
+Left.prototype.map = function (f) {
+  return this
+}
+
+var Right = function (x) {
+  this._value = x
+}
+
+Right.of = function (x) {
+  return new Right(x)
+}
+
+Right.prototype.map = function (f) {
+  return Right.of(f(this._value))
+}
+```
+
+Left 和 Right 是 Either 的抽象类型的两个子类。它们的用法如下：
+
+```js
+Right.of('rain').map(function (str) { // Right('brain')
+  return 'b' + str
+})
+
+Left.of('rain').map(function (str) { // Left('rain')
+  return 'b' + str
+})
+
+Right.of({ host: 'localhost', port: 80 }).map(_.prop('host') // Right('localhost')
+
+Left.of('rolls eyes...').map(_.prop('host')) // Left('rolls eyes...')
+```
+
+Left 会无视我们要 map 它的请求。Right 的作用就像是一个 Container（也就是 Identity）。这里强大的地方在于， **Left 有能力在它内部嵌入一个错误消息**。
+
+假设有一个可能会失败的函数，比如根据生日计算年龄。确实，我们可以用 Maybe(null) 来表示失败并把程序引向另一个分支，但是这并没有告诉我们太多信息。很有可能我们想知道失败的原因是什么。用 Either 写一个这样的程序看看：
+
+```js
+var moment = require('moment')
+
+// getAge :: Date -> User -> Either(String, Number)
+var getAge = curry(function (now, user) {
+  var birthdate = moment(user.birthdate, 'YYYY-MM-DD')
+  if (!birthdate.isValid()) return Left.of('Birth date could not be parsed')
+  return Right.of(now.diff(birthdate, 'years'))
+})
+
+getAge(moment(), { birthdate: '2011-06-05' }) // Right(9)
+
+getAge(moment(), { birthdate: 'balloons!' }) // Left('Birth date could not be parsed')
+```
+
+这么一来，就像 Maybe(null)，当返回一个 Left 的时候就直接让程序短路。跟 Maybe(null) 不同的是，现在我们对程序为何脱离原先轨道至少有了一点头绪。
+
+有一点要注意，这里返回的是 Either(String, Number)，意味着我们这个 Either 左边的值是 String，右边（也就是正确的值）的值是 Number。这个类型签名不是很正式，因为我们并没有定义一个真正的 Either 父类；但我们还是从这个类型那里了解到不少东西。它告诉我们，我们得到的要么是一条错误消息，要么就是正确的年龄值。
+
+```js
+// fortune :: Number -> String
+var fortune = compose(concat('If you survive, you will be '), add(1))
+
+// zoltar :: User -> Either(String, _)
+var zoltar = compose(map(console.log), map(fortune), getAge(moment()))
+
+zoltar({ birthdate: '2011-06-05' }) // "If you survive, you will be 10"  Right(undefined)
+
+zoltar({birthdate: 'balloons!'}) // Left("Birth date could not be parsed")
+```
+
+如果 birthdate 合法，这个程序就会打印出正确的结果；如果不合法，我们就会收到一个带错误消息的 Left，尽管这个消息是稳稳当当地待在它的容器里的。
+
+在这个例子中，我们根据 birthdate 的合法性来控制代码的逻辑分支，同时又让代码进行从右到左的直线运动，而不用爬过各种条件语句的大括号。
+
+我们在 Right 分支的类型签名中使用 _ 表示一个应该忽略的值（在有些浏览器中，你必须要 console.log.bind(console) 才能把 console.log 当作一等公民使用）。
+
+这个例子中，尽管 fortune 使用了 Either，它对每一个 functor 到底要干什么却是毫不知情的。前面例子中的 finishTransaction 也是一样。
+
+通俗点来讲，**一个函数在调用的时候，如果被 map 包裹了，那么它就会从一个非 functor 函数转换为一个 functor 函数**。我们把这个过程叫做 **lift**。
+
+一般情况下，**普通函数更适合操作普通的数据类型而不是容器类型，在必要的时候再通过 lift 变为合适的容器去操作容器类型**。这样做的好处是能得到更简单、重用性更高的函数，它们能够随需求而变，兼容任意 functor。
+
+Either 并不仅仅只对合法性检查这种一般性的错误作用非凡，对一些更严重的、能够中断程序执行的错误比如文件丢失或者 socket 连接断开等，Either 同样效果显著。
+
+但是，Either 的作用并不仅仅只是当作一个错误消息的容器，它还有更多的用处。比如，它表示逻辑或。再比如，它体现了范畴学里 coproduct 的概念，这个概念有很多特性值得利用。还比如，它是标准的 sum type（或者叫不交并集，disjoint union of sets），因为它含有的所有可能的值的总数就是它包含的那两种类型的总数。
+
+Either 能做的事情多着呢，但是作为一个 functor，我们就用它处理错误。
+
+就像 Maybe 可以有个 maybe 一样，Either 也可以有一个 either。两者的用法类似，但 either 接受两个函数（而不是一个）和一个静态值为参数。这两个函数的返回值类型一致：
+
+```js
+//  either :: (a -> c) -> (b -> c) -> Either a b -> c
+var either = curry(function (f, g, e) {
+  switch (e.constructor) {
+    case Left:
+      return f(e.__value)
+    case Right:
+      return g(e.__value)
+  }
+})
+
+//  zoltar :: User -> _
+var zoltar = compose(console.log, either(id, fortune), getAge(moment()))
+
+zoltar({birthdate: '2005-12-12'})
+// "If you survive, you will be 10"
+// undefined
+
+zoltar({birthdate: 'balloons!'});
+// "Birth date could not be parsed"
+// undefined
+```
+
+这里用到了 id 函数，其实它就是简单的复制了 Left 里的错误消息，然后把这个值传给 console.log 而已。
+
+**5. 第四种 functor —— IO**
+
+在关于纯函数的的那一章（即第 3 章）里，有一个很奇怪的例子。这个例子中的函数会产生副作用，但是我们通过把它包裹在另一个函数里的方式把它变得看起来像一个纯函数。这里还有一个类似的例子：
+
+```js
+//  getFromStorage :: String -> (_ -> String)
+var getFromStorage = function(key) {
+  return function() {
+    return localStorage[key]
+  }
+}
+```
+
+要是我们没把 getFromStorage 包在另一个函数里，它的输出值就是不定的，会随外部环境变化而变化。有了这个结实的包裹函数（wrapper），同一个输入就总能返回同一个输出：一个从 localStorage 里取出某个特定的元素的函数。
+
+那我们如何进到容器里，拿到藏在哪儿的东西呢？办法是有的，请看 IO：
+
+```js
+var IO = function (f) {
+  this._value = f
+}
+
+IO.of = function (x) {
+  return new IO(function () {
+    return x
+  })
+}
+
+IO.prototype.map = function (f) {
+  return new IO(_.compose(f, this._value))
+}
+```
+
+IO 跟之前的 functor 不同的地方在于，**它的 _value 总是一个函数**。
+
+这里发生的事情跟我们在 getFromStorage 那里看到的一模一样：**IO 把非纯执行动作（impure action）捕获到包裹函数里，目的是延迟执行这个非纯动作**。就这一点而言，我们认为 **IO 包含的是被包裹的执行动作的返回值，而不是包裹函数本身**。这在 of 函数里很明显：IO(function(){ return x }) 仅仅是为了延迟执行，其实我们得到的是 IO(x)。
+
+用法如下：
+
+```js
+// io_window :: IO window
+var io_window = new IO(function () {
+  return window
+})
+
+io_window.map(function (win) {
+  return win.innerWidth  // IO(1430)
+})
+
+io_window.map(_.prop('location')).map(_.prop('href')).map(split('/')) // IO(["http:", "", "localhost:8000", "blog", "posts"])
+
+// $ :: String -> IO [DOM]
+var $ = function (selector) {
+  return new IO(function () {
+    return document.querySelectorAll(selector)
+  })
+}
+
+$('#myDiv').map(head).map(function (div) {
+  return div.innerHTML // IO('I am some inner html')
+})
+```
+
+这里，io_window 是一个真正的 IO，我们可以直接对它使用 map。至于 $，则是一个函数，调用后会返回一个 IO。
+
+```js
+////// 纯代码库: lib/params.js ///////
+
+//  url :: IO String
+var url = new IO(function() {
+  return window.location.href
+})
+
+//  toPairs =  String -> [[String]]
+var toPairs = compose(map(split('=')), split('&'))
+
+//  params :: String -> [[String]]
+var params = compose(toPairs, last, split('?'))
+
+//  findParam :: String -> IO Maybe [String]
+var findParam = function(key) {
+  return map(compose(Maybe.of, filter(compose(eq(key), head)), params), url)
+}
+
+////// 非纯调用代码: main.js ///////
+
+// 调用 __value() 来运行它！
+findParam("searchTerm").__value() // Maybe(['searchTerm', 'wafflehouse'])
+```
+
+lib/params.js 把 url 包裹在一个 IO 里，然后把它传给了调用者。
+
+IO 的 __value 并不是它包含的值，也不是像两个下划线暗示那样是一个私有属性。__value 是手榴弹的弹栓，只应该被调用者以最公开的方式拉动。为了提醒用户它的变化无常，我们把它重命名为 unsafePerformIO 看看。
+
+```js
+var IO = function(f) {
+  this.unsafePerformIO = f
+}
+
+IO.prototype.map = function(f) {
+  return new IO(_.compose(f, this.unsafePerformIO))
+}
+```
+
+**6. 异步任务**
+
+处理异步代码，有一种更好的方式，它的名字以“F”开头。但是这种方式的内部机制过于复杂,所以我们就直接用 Quildreen Motta 的 [Folktale](http://ww7.folktalejs.org/) 里的 Data.Task （之前是 Data.Future）。下面是一些例子：
+
+```js
+// Node readfile example:
+//=======================
+
+var fs = require('fs')
+
+//  readFile :: String -> Task(Error, JSON)
+var readFile = function(filename) {
+  return new Task(function(reject, result) {
+    fs.readFile(filename, 'utf-8', function(err, data) {
+      err ? reject(err) : result(data)
+    })
+  })
+}
+
+readFile("metamorphosis").map(split('\n')).map(head)
+// Task("One morning, as Gregor Samsa was waking up from anxious dreams, he discovered that
+// in bed he had been changed into a monstrous verminous bug.")
+
+
+// jQuery getJSON example:
+//========================
+
+//  getJSON :: String -> {} -> Task(Error, JSON)
+var getJSON = curry(function(url, params) {
+  return new Task(function(reject, result) {
+    $.getJSON(url, params, result).fail(reject)
+  })
+})
+
+getJSON('/video', {id: 10}).map(_.prop('title'))
+// Task("Family Matters ep 15")
+
+// 传入普通的实际值也没问题
+Task.of(3).map(function(three){ 
+  return three + 1 // Task(4)
+})
+```
+
+例子中的 reject 和 result 函数分别是失败和成功的回调。正如你看到的，我们只是简单地调用 Task 的 map 函数，就能操作将来的值，好像这个值就在那儿似的。
+
+如果熟悉 promise 的话，map 就是 then，Task 就是一个 promise。
+
+与 IO 类似，Task 在我们给它下命令之前是不会运行的。事实上，正因为它要等我们的命令，IO 实际就被纳入到了 Task 名下，代表所有的异步操作 —— readFile 和 getJSON 并不需要一个额外的 IO 容器来变纯。更重要的是，当我们调用它的 map 的时候，Task 工作的方式与 IO 几无差别：都是把对未来的操作的指示放在一个时间胶囊里，就像家务列表（chore chart）那样 —— 真是一种精密的拖延术。
+
+我们**必须调用 fork 方法才能运行 Task**，这种机制与 unsafePerformIO 类似。但也有不同，不同之处就像 fork 这个名称表明的那样，它会 fork 一个子进程运行它接收到的参数代码，其他部分的执行不受影响，主线程也不会阻塞。fork 的使用如下：
+
+```js
+// Pure application
+//=====================
+// blogTemplate :: String
+
+//  blogPage :: Posts -> HTML
+var blogPage = Handlebars.compile(blogTemplate)
+
+//  renderPage :: Posts -> HTML
+var renderPage = compose(blogPage, sortBy('date'))
+
+//  blog :: Params -> Task(Error, HTML)
+var blog = compose(map(renderPage), getJSON('/posts'))
+
+
+// Impure calling code
+//=====================
+blog({}).fork(
+  function(error){
+    $("#error").html(error.message)
+  },
+  function(page){
+    $("#main").html(page)
+  }
+)
+
+$('#spinner').show()
+```
+
+调用 fork 之后，Task 就赶紧跑去找一些文章，渲染到页面上。与此同时，我们在页面上展示一个 spinner，因为 fork 不会等收到响应了才执行它后面的代码。最后，我们要么把文章展示在页面上，要么就显示一个出错信息，视 getJSON 请求是否成功而定。
+
+这里的控制流为何是线性的。我们只需要从下读到上，从右读到左就能理解代码，即便这段程序实际上会在执行过程中到处跳来跳去。这种方式使得阅读和理解应用程序的代码比那种要在各种回调和错误处理代码块之间跳跃的方式容易得多。
+
+可以发现，Task 居然也包含了 Either！没办法，为了能处理将来可能出现的错误，它必须得这么做，因为普通的控制流在异步的世界里不适用。这自然是好事一桩，因为它天然地提供了充分的“纯”错误处理。
+
+就算是有了 Task，IO 和 Either 这两个 functor 也照样能派上用场。
+
+```js
+// Postgres.connect :: Url -> IO DbConnection
+// runQuery :: DbConnection -> ResultSet
+// readFile :: String -> Task Error String
+
+// Pure application
+//=====================
+
+//  dbUrl :: Config -> Either Error Url
+var dbUrl = function(c) {
+  return (c.uname && c.pass && c.host && c.db)
+    ? Right.of("db:pg://"+c.uname+":"+c.pass+"@"+c.host+"5432/"+c.db)
+    : Left.of(Error("Invalid config!"))
+}
+
+//  connectDb :: Config -> Either Error (IO DbConnection)
+var connectDb = compose(map(Postgres.connect), dbUrl)
+
+//  getConfig :: Filename -> Task Error (Either Error (IO DbConnection))
+var getConfig = compose(map(compose(connectDB, JSON.parse)), readFile)
+
+
+// Impure calling code
+//=====================
+getConfig("db.json").fork(
+  logErr("couldn't read file"), either(console.log, map(runQuery))
+)
+```
+
+这个例子中，我们在 readFile 成功的那个代码分支里利用了 Either 和 IO。Task 处理异步读取文件这一操作当中的不“纯”性，但是验证 config 的合法性以及连接数据库则分别使用了 Either 和 IO。
