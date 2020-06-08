@@ -34,10 +34,10 @@ console.log(a) // a is not defined
 下面这样写，函数能够正常执行并输出123。
 
 ```js
+test() // 123
 function test () {
   console.log(123)
 }
-test() // 123
 ```
 
 但是变量按照这样写的话就不行了。
@@ -55,7 +55,31 @@ console.log(a) // 20
 a = 20
 ```
 
-- 
+- 匿名函数
+
+```js
+(function () {
+  console.log(123)
+  debugger
+})()
+```
+
+上面这段代码中，有一个匿名函数，执行代码后在浏览器中可以看到堆栈调用的显示。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest1.png 'jstest')
+
+但是奇怪的是，明明我们只写了一个匿名函数，在堆栈中却看到有两个匿名函数。这是因为 js 在执行代码时，会像 C 和 Java 那样把所有的代码放到一个统一的入口中去执行，在 C 和 Java 中这个入口就是 main 函数。但是在 js 中没有 main 函数，而是一个匿名函数。
+
+因此，上面的代码其实在 js 中是包裹到这样一个匿名函数中执行的，我们才会看到有两个匿名函数。
+
+```js
+(function () {
+  (function () {
+    console.log(123)
+    debugger
+  })()
+})()
+```
 
 function a() { alert(10) }、10、3、报错
 
