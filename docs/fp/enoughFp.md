@@ -2042,3 +2042,548 @@ getConfig("db.json").fork(
 ```
 
 这个例子中，我们在 readFile 成功的那个代码分支里利用了 Either 和 IO。Task 处理异步读取文件这一操作当中的不“纯”性，但是验证 config 的合法性以及连接数据库则分别使用了 Either 和 IO。
+
+**7. 一点理论**
+
+functor 的概念来自于范畴学，并满足一些定律。下面是这些实用的定律。
+
+```js
+// identity
+map(id) === id
+
+// composition
+compose(map(f), map(g)) === map(compose(f, g))
+```
+
+可以在我们自己的 functor 上试验它们，验证它们是否成立。
+
+```js
+var idLaw1 = map(id);
+var idLaw2 = id;
+
+idLaw1(Container.of(2));
+//=> Container(2)
+
+idLaw2(Container.of(2));
+//=> Container(2)
+
+var compLaw1 = compose(map(concat(" world")), map(concat(" cruel")));
+var compLaw2 = map(compose(concat(" world"), concat(" cruel")));
+
+compLaw1(Container.of("Goodbye"));
+//=> Container('Goodbye cruel world')
+
+compLaw2(Container.of("Goodbye"));
+//=> Container('Goodbye cruel world')
+```
+
+在范畴学中，functor 接受一个范畴的对象和态射（morphism），然后把它们映射（map）到另一个范畴里去。根据定义，这个新范畴一定会有一个单位元（identity），也一定能够组合态射。
+
+可以把范畴想象成一个有着多个对象的网络，对象之间靠态射连接。那么 functor 可以把一个范畴映射到另外一个，而且不会破坏原有的网络。如果一个对象 a 属于源范畴 C，那么通过 functor F 把 a 映射到目标范畴 D 上之后，就可以使用 F a 来指代 a 对象。可能看图会更容易理解：
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp5.png "Functional Programming")
+
+比如，Maybe 就把类型和函数的范畴映射到这样一个范畴：即每个对象都有可能不存在，每个态射都有空值检查的范畴。这个结果在代码中的实现方式是用 map 包裹每一个函数，用 functor 包裹每一个类型。这样就能保证每个普通的类型和函数都能在新环境下继续使用组合。从技术上讲，代码中的 functor 实际上是把范畴映射到了一个包含类型和函数的子范畴（sub category）上，使得这些 functor 成为了一种新的特殊的 endofunctor。
+
+可以用一张图来表示这种态射及其对象的映射：
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp6.png "Functional Programming")
+
+这张图除了能表示态射借助 functor F 完成从一个范畴到另一个范畴的映射之外，我们发现它还符合交换律，也就是说，顺着箭头的方向往前，形成的每一个路径都指向同一个结果。不同的路径意味着不同的行为，但最终都会得到同一个数据类型。这种形式化给了我们原则性的方式去思考代码——无须分析和评估每一个单独的场景，只管可以大胆地应用公式即可。比如下面这个具体的例子：
+
+```js
+//  topRoute :: String -> Maybe(String)
+var topRoute = compose(Maybe.of, reverse);
+
+//  bottomRoute :: String -> Maybe(String)
+var bottomRoute = compose(map(reverse), Maybe.of);
+
+
+topRoute("hi");
+// Maybe("ih")
+
+bottomRoute("hi");
+// Maybe("ih")
+```
+
+或者看图：
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp7.png "Functional Programming")
+
+functor 也能嵌套使用：
+
+```js
+var nested = Task.of([Right.of("pillows"), Left.of("no sleep for you")]);
+
+map(map(map(toUpperCase)), nested);
+// Task([Right("PILLOWS"), Left("no sleep for you")])
+```
+
+nested 是一个将来的数组，数组的元素有可能是程序抛出的错误。我们使用 map 剥开每一层的嵌套，然后对数组的元素调用传递进去的函数。可以看到，这中间没有回调、if/else 语句和 for 循环，只有一个明确的上下文。的确，我们必须要 map(map(map(f))) 才能最终运行函数。不想这么做的话，可以组合 functor。如下：
+
+```js
+var Compose = function(f_g_x){
+  this.getCompose = f_g_x;
+}
+
+Compose.prototype.map = function(f){
+  return new Compose(map(map(f), this.getCompose));
+}
+
+var tmd = Task.of(Maybe.of("Rock over London"))
+
+var ctmd = new Compose(tmd);
+
+map(concat(", rock on, Chicago"), ctmd);
+// Compose(Task(Maybe("Rock over London, rock on, Chicago")))
+
+ctmd.getCompose;
+// Task(Maybe("Rock over London, rock on, Chicago"))
+```
+
+functor 组合是符合结合律的，而且之前我们定义的 Container 实际上是一个叫 Identity 的 functor。identity 和可结合的组合也能产生一个范畴，这个特殊的范畴的对象是其他范畴，态射是 functor。
+
+练习
+
+```js
+require('../../support');
+var Task = require('data.task');
+var _ = require('ramda');
+
+// 练习 1
+// ==========
+// 使用 _.add(x,y) 和 _.map(f,x) 创建一个能让 functor 里的值增加的函数
+
+var ex1 = undefined
+
+
+
+//练习 2
+// ==========
+// 使用 _.head 获取列表的第一个元素
+var xs = Identity.of(['do', 'ray', 'me', 'fa', 'so', 'la', 'ti', 'do']);
+
+var ex2 = undefined
+
+
+
+// 练习 3
+// ==========
+// 使用 safeProp 和 _.head 找到 user 的名字的首字母
+var safeProp = _.curry(function (x, o) { return Maybe.of(o[x]); });
+
+var user = { id: 2, name: "Albert" };
+
+var ex3 = undefined
+
+
+// 练习 4
+// ==========
+// 使用 Maybe 重写 ex4，不要有 if 语句
+
+var ex4 = function (n) {
+  if (n) { return parseInt(n); }
+};
+
+var ex4 = undefined
+
+
+
+// 练习 5
+// ==========
+// 写一个函数，先 getPost 获取一篇文章，然后 toUpperCase 让这片文章标题变为大写
+
+// getPost :: Int -> Future({id: Int, title: String})
+var getPost = function (i) {
+  return new Task(function(rej, res) {
+    setTimeout(function(){
+      res({id: i, title: 'Love them futures'})
+    }, 300)
+  });
+}
+
+var ex5 = undefined
+
+
+
+// 练习 6
+// ==========
+// 写一个函数，使用 checkActive() 和 showWelcome() 分别允许访问或返回错误
+
+var showWelcome = _.compose(_.add( "Welcome "), _.prop('name'))
+
+var checkActive = function(user) {
+ return user.active ? Right.of(user) : Left.of('Your account is not active')
+}
+
+var ex6 = undefined
+
+
+
+// 练习 7
+// ==========
+// 写一个验证函数，检查参数是否 length > 3。如果是就返回 Right(x)，否则就返回
+// Left("You need > 3")
+
+var ex7 = function(x) {
+  return undefined // <--- write me. (don't be pointfree)
+}
+
+
+
+// 练习 8
+// ==========
+// 使用练习 7 的 ex7 和 Either 构造一个 functor，如果一个 user 合法就保存它，否则
+// 返回错误消息。别忘了 either 的两个参数必须返回同一类型的数据。
+
+var save = function(x){
+  return new IO(function(){
+    console.log("SAVED USER!");
+    return x + '-saved';
+  });
+}
+
+var ex8 = undefined
+```
+
+## Monad
+
+**1. pointed functor**
+
+关于我们先前创建的容器类型上的 of 方法，真实情况是，of 方法不是用来避免使用 new 关键字的，而是用来把值放到默认最小化上下文（default minimal context）中的。of 没有真正地取代构造器 —— 它是一个我们称之为 pointed 的重要接口的一部分。
+
+> pointed functor 是实现了 of 方法的 functor。
+
+这里的关键是把任意值丢到容器里然后开始到处使用 map 的能力。
+
+```js
+IO.of('tetris').map(concat('master')) // IO('tetris master')
+
+Maybe.of(1336).map(add(1)) // Maybe(1337)
+
+Task.of([{ id: 2 }, { id: 3 }]).map(_.prop('id')) // Task([2, 3])
+
+Either.of('The past, present and future walk into a bar...').map(concat('it was tense'))
+// Right("The past, present and future walk into a bar...it was tense.")
+```
+
+IO 和 Task 的构造器接受一个函数作为参数，而 Maybe 和 Either 的构造器可以接受任意值。
+
+实现这种接口的动机是，我们希望能有一种通用、一致的方式往 functor 里填值，而且中间不会涉及到复杂性，也不会涉及到对构造器的特定要求。
+
+“默认最小化上下文”这个术语可能不够精确，但是却很好地传达了这种理念：**我们希望容器类型里的任意值都能发生 lift，然后像所有的 functor 那样再 map 出去**。
+
+每个 functor 都要有一种把值放进去的方式，对 Either 来说，它的方式就是 new Right(x)。我们为 Right 定义 of 的原因是，如果一个类型容器可以 map，那它就应该 map。但是 Left 破坏了这种模式。
+
+要避免 new 关键字，可以借助一些标准的 JavaScript 技巧或者类库达到目的。推荐使用 folktale、ramda 或 fantasy-land 里的 functor 实例，因为它们同时提供了正确的 of 方法和不依赖 new 的构造器。
+
+**2. join 方法**
+
+monad 常被比喻为洋葱。看看下面这个常见的场景：
+
+```js
+// Support
+// ===========================
+var fs = require('fs');
+
+//  readFile :: String -> IO String
+var readFile = function(filename) {
+  return new IO(function() {
+    return fs.readFileSync(filename, 'utf-8');
+  });
+};
+
+//  print :: String -> IO String
+var print = function(x) {
+  return new IO(function() {
+    console.log(x);
+    return x;
+  });
+}
+
+// Example
+// ===========================
+//  cat :: IO (IO String)
+var cat = compose(map(print), readFile);
+
+cat(".git/config")
+// IO(IO("[core]\nrepositoryformatversion = 0\n"))
+```
+
+这里得到的是一个 IO，只不过它陷进了另一个 IO。要想使用它，我们必须这样调用： map(map(f))；要想观察它的作用，必须这样： unsafePerformIO().unsafePerformIO()。
+
+```js
+//  cat :: String -> IO (IO String)
+var cat = compose(map(print), readFile);
+
+//  catFirstChar :: String -> IO (IO String)
+var catFirstChar = compose(map(map(head)), cat);
+
+catFirstChar(".git/config")
+// IO(IO("["))
+```
+
+再来看另外一种场景：
+
+```js
+//  safeProp :: Key -> {Key: a} -> Maybe a
+var safeProp = curry(function(x, obj) {
+  return new Maybe(obj[x]);
+});
+
+//  safeHead :: [a] -> Maybe a
+var safeHead = safeProp(0);
+
+//  firstAddressStreet :: User -> Maybe (Maybe (Maybe Street) )
+var firstAddressStreet = compose(
+  map(map(safeProp('street'))), map(safeHead), safeProp('addresses')
+);
+
+firstAddressStreet(
+  {addresses: [{street: {name: 'Mulburry', number: 8402}, postcode: "WC2N" }]}
+);
+// Maybe(Maybe(Maybe({name: 'Mulburry', number: 8402})))
+```
+
+这种嵌套 functor 的模式会时不时地出现，而且是 monad 的主要使用场景。
+
+```js
+var mmo = Maybe.of(Maybe.of("nunchucks"));
+// Maybe(Maybe("nunchucks"))
+
+mmo.join();
+// Maybe("nunchucks")
+
+var ioio = IO.of(IO.of("pizza"));
+// IO(IO("pizza"))
+
+ioio.join()
+// IO("pizza")
+
+var ttt = Task.of(Task.of(Task.of("sewers")));
+// Task(Task(Task("sewers")));
+
+ttt.join()
+// Task(Task("sewers"))
+```
+
+如果有两层相同类型的嵌套，那么就可以用 join 把它们展平。monad 更完整的精确定义如下：
+
+> monad 是可以展平（flatten）的 pointed functor。
+
+一个 functor，只要它定义个了一个 join 方法和一个 of 方法，并遵守一些定律，那么它就是一个 monad。
+
+join 的实现并不太复杂，我们来为 Maybe 定义一个：
+
+```js
+Maybe.prototype.join = function () {
+  return this.isNothing() ? Maybe.of(null) : this._value
+}
+```
+
+如果有一个 Maybe(Maybe(x))，那么 .__value 将会移除多余的一层，然后我们就能安心地从那开始进行 map。
+
+既然已经有了 join 方法，我们把 monad 魔法作用到 firstAddressStreet 例子上，看看它的实际作用：
+
+```js
+// join :: Monad m => m (m a) -> m a
+var join = function (mma) {
+  return mma.join()
+}
+
+var firstAddressStreet = compose(join, map(safeProp('street')), join, map(safeHead), safeProp('addresses'))
+
+firstAddressStreet(
+  {addresses: [{street: {name: 'Mulburry', number: 8402}, postcode: "WC2N" }]}
+) // Maybe({name: 'Mulburry', number: 8402})
+```
+
+为 IO 也定义一个 join 方法：
+
+```js
+IO.prototype.join = function () {
+  return this.unsafePerformIO()
+}
+```
+
+同样是简单的移除了一层容器。
+
+```js
+//  log :: a -> IO a
+var log = function(x) {
+  return new IO(function() { 
+    console.log(x); return x;
+  });
+}
+
+//  setStyle :: Selector -> CSSProps -> IO DOM
+var setStyle = curry(function(sel, props) {
+  return new IO(function() {
+    return jQuery(sel).css(props);
+  });
+});
+
+//  getItem :: String -> IO String
+var getItem = function(key) {
+  return new IO(function() {
+    return localStorage.getItem(key);
+  });
+};
+
+//  applyPreferences :: String -> IO DOM
+var applyPreferences = compose(
+  join, map(setStyle('#main')), join, map(log), map(JSON.parse), getItem
+);
+
+
+applyPreferences('preferences').unsafePerformIO();
+// Object {backgroundColor: "green"}
+// <div style="background-color: 'green'"/>
+```
+
+getItem 返回了一个 IO String，所以可以直接用 map 来解析它。log 和 setStyle 返回的都是 IO，所以必须要使用 join 来保证这里边的嵌套处于控制之中。
+
+**3. chain 函数**
+
+从上面的例子中可以注意到：我们总是在紧跟着 map 的后面调用 join。让我们把这个行为抽象到一个叫做 chain 的函数里。
+
+```js
+// chain :: Monad m => (a -> m b) -> m a -> m b
+var chain = curry(function (f, m) {
+  return m.map(f).join() // 或者 compose(join, map(f))(m)
+})
+```
+
+这里仅仅是把 map/join 打包到一个函数中。chain 其实叫做 >>= （读作 bind）或者 flatMap，都是同一个概念的不同名称罢了。
+
+使用 chain 来重构上面两个例子：
+
+```js
+// map/join
+var firstAddressStreet = compose(
+  join, map(safeProp('street')), join, map(safeHead), safeProp('addresses')
+);
+// chain
+var firstAddressStreet = compose(
+  chain(safeProp('street')), chain(safeHead), safeProp('addresses')
+)
+
+// map/join
+var applyPreferences = compose(
+  join, map(setStyle('#main')), join, map(log), map(JSON.parse), getItem
+);
+// chain
+var applyPreferences = compose(
+  chain(setStyle('#main')), chain(log), map(JSON.parse), getItem
+)
+```
+
+重构后的代码简洁了一些。但 chain 的能力却远不止于此，因为 chain 可以轻松地嵌套多个作用，因此我们就能以一种纯函数式的方式来表示**序列**（sequence）和**变量赋值**（variable assignment）。
+
+```js
+// getJSON :: Url -> Params -> Task JSON
+// querySelector :: Selector -> IO DOM
+
+getJSON('/authenticate', {username: 'stale', password: 'crackers'})
+  .chain(function(user) {
+    return getJSON('/friends', {user_id: user.id});
+});
+// Task([{name: 'Seimith', id: 14}, {name: 'Ric', id: 39}]);
+
+
+querySelector("input.username").chain(function(uname) {
+  return querySelector("input.email").chain(function(email) {
+    return IO.of(
+      "Welcome " + uname.value + " " + "prepare for spam at " + email.value
+    );
+  });
+});
+// IO("Welcome Olivia prepare for spam at olivia@tremorcontrol.net");
+
+
+Maybe.of(3).chain(function(three) {
+  return Maybe.of(2).map(add(three));
+});
+// Maybe(5);
+
+
+Maybe.of(null).chain(safeProp('address')).chain(safeProp('street'));
+// Maybe(null);
+```
+
+chain 可以自动从任意类型的 map 和 join 衍生出来，就像这样：t.prototype.chain = function(f) { return this.map(f).join(); }。
+
+第一个例子中，可以看到两个 Task 通过 chain 连接形成了一个异步操作的**序列** —— 它先获取 user，然后用 user.id 查找 user 的 friends。chain 避免了 Task(Task([Friend])) 这种情况。
+
+第二个例子是用 querySelector 查找几个 input 然后创建一条欢迎信息。注意看我们是如何在最内层的函数里访问 uname 和 email 的 —— 这是**函数式变量赋值**的绝佳表现。因为 IO 大方地把它的值借给了我们，我们也要负起以同样方式把值放回去的责任 —— 不能辜负它的信任（还有整个程序的信任）。IO.of 非常适合做这件事，同时它也解释了为何 pointed 这一特性是 monad 接口得以存在的重要前提。不过，map 也能返回正确的类型：
+
+```js
+querySelector("input.username").chain(function(uname) {
+  return querySelector("input.email").map(function(email) {
+    return "Welcome " + uname.value + " prepare for spam at " + email.value;
+  });
+});
+// IO("Welcome Olivia prepare for spam at olivia@tremorcontrol.net");
+```
+
+最后两个例子用了 Maybe。因为 chain 其实是在底层调用了 map，所以如果遇到 null，代码就会立刻停止运行。
+
+总之记住，**返回的如果是“普通”值就用 map，如果是 functor 就用 chain**。
+
+这种容器编程风格有时也能造成困惑，因为有时我们不得不努力理解一个值到底嵌套了几层容器，或者需要用 map 还是 chain。
+
+下面这个例子是读一个文件，然后把它直接上传。
+
+```js
+// readFile :: Filename -> Either String (Future Error String)
+// httpPost :: String -> Future Error JSON
+
+// upload :: String -> Either String (Future Error JSON)
+var upload = compose(
+  map(chain(httpPost('/uploads'))), readFile
+);
+```
+
+这里，代码不止一次在不同的分支执行。从类型签名可以看出，我们预防了三个错误——readFile 使用 Either 来验证输入（或许还有确保文件名存在）；readFile 在读取文件的时候可能会出错，错误通过 readFile 的 Future 表示；文件上传可能会因为各种各样的原因出错，错误通过 httpPost 的 Future 表示。我们就这么随意地使用 chain 实现了两个嵌套的、有序的异步执行动作。
+
+所有这些操作都是在一个从左到右的线性流中完成的，是完完全全纯的、声明式的代码，是可以等式推导（equational reasoning）并拥有可靠特性（reliable properties）的代码。这个 upload 函数符合通用接口而不是特定的一次性接口。
+
+把它跟标准的命令式的实现对比一下：
+
+```js
+var upload = function (filename, callback) {
+  if (!filename) {
+    throw 'You need a filename!'
+  } else {
+    readFile(filename, function (err, contents) {
+      if (err) throw err
+      httpPost(contents, function (err, json) {
+        if (err) throw err
+        callback(json)
+      })
+    })
+  }
+}
+```
+
+**4. 一点理论**
+
+第一条定律是结合律，但不是我们熟悉的那个结合律。
+
+```js
+// 结合律
+compose(join, map(join)) == compose(join, join)
+```
+
+这些定律表明了 monad 的嵌套本质，所以结合律关心的是如何让内层或外层的容器类型 join，然后取得同样的结果。用一张图来表示可能效果会更好：
+
+![Functional Programming](../.vuepress/public/assets/image/fp/fp8.png "Functional Programming")
+
+从左上角往下，先用 join 合并 M(M(M a)) 最外层的两个 M，然后往右，再调用一次 join，就得到了我们想要的 M a。或者，从左上角往右，先打开最外层的 M，用 map(join) 合并内层的两个 M，然后再向下调用一次 join，也能得到 M a。不管是先合并内层还是先合并外层的 M，最后都会得到相同的 M a，所以这就是结合律。值得注意的一点是 map(join) != join。两种方式的中间步骤可能会有不同的值，但最后一个 join 调用后最终结果是一样的。
+
+第二条定律是同一律，与结合律类似：
+
+```js
+// 同一律
+compose(join, of) === compose(join, map(of)) == id
+```
