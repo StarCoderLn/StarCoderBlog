@@ -18,7 +18,7 @@ a()
 
 - `undefined` 和 `not defined` 不是一个东西。undefined 说明这个变量没赋值，但是是存在的；not defined 报错，说明这个变量压根就不存在。
 
-- js 在预编译的时候会把所有带 var 的变量**提升到函数顶端**。下面就是 js 中的私有变量，在函数外部是访问不到的。
+- js 在预编译的时候会把所有带 var 的变量**提升到函数顶端**。下面就是 **js 中的私有变量，在函数外部是访问不到的**。
 
 ```js
 function init () {
@@ -47,15 +47,15 @@ console.log(a)
 var a = 20 // undefined
 ```
 
-这是因为变量还有**词法作用域**。如果改成下面这样就可以了。
+如果改成下面这样就可以了。这是因为变量还有**词法作用域**。
 
 ```js
 var a
-console.log(a) // 20
+console.log(a) // 直接复制到chrome开发工具中是输出 20，但是在文件中打开输出的是 undefined
 a = 20
 ```
 
-- 匿名函数
+- **匿名函数**
 
 ```js
 (function () {
@@ -68,7 +68,7 @@ a = 20
 
 ![jstest](../.vuepress/public/assets/image/javascript/jstest1.png 'jstest')
 
-但是奇怪的是，明明我们只写了一个匿名函数，在堆栈中却看到有两个匿名函数。这是因为 js 在执行代码时，会像 C 和 Java 那样把所有的代码放到一个统一的入口中去执行，在 C 和 Java 中这个入口就是 main 函数。但是在 js 中没有 main 函数，而是一个匿名函数。
+但是奇怪的是，明明我们只写了一个匿名函数，在堆栈中却看到有两个匿名函数。这是因为 js 在执行代码时，会像 C 和 Java 那样**把所有的代码放到一个统一的主入口中去执行**，在 C 和 Java 中这个入口就是 main 函数。但是在 js 中没有 main 函数，而是一个匿名函数。
 
 因此，上面的代码其实在 js 中是包裹到这样一个匿名函数中执行的，我们才会看到有两个匿名函数。
 
@@ -81,7 +81,141 @@ a = 20
 })()
 ```
 
-function a() { alert(10) }、10、3、报错
+- 块级作用域
+
+ES6 的 let 和 const 都具有块级作用域。
+
+```js
+{
+  a = 30
+}
+console.log(a) // 30
+
+{
+  const a = 30
+}
+console.log(a) // a is not defined
+```
+
+块级作用域会造成暂时性死区。
+
+a 在 const 声明之前使用，会报错。 
+
+```js
+var a = 30
+{
+  a = 40
+  const a
+}
+console.log(a) // Uncaught SyntaxError: Missing initializer in const declaration
+```
+
+函数没有块级作用域。
+
+```js
+{
+  function test () {}
+}
+console.log(test) // ƒ test () {}
+```
+
+下面这样写就会有问题。
+
+```js
+{
+  const test = function test () {}
+}
+console.log(test) // Uncaught ReferenceError: test is not defined
+
+{
+  var test = function test () {}
+}
+console.log(test) // ƒ test () {}
+```
+下面这几点也是需要注意的！
+
+```js
+// 由于词法作用域的存在，下面的变量 shenzhen 会把函数 shenzhen 覆盖掉，输出1
+function shenzhen () {}
+var shenzhen  = 1
+console.log(shenzhen) // 1
+
+// 不同浏览器表现不一样，以Chrome为主
+// 变量 shenzhen 没有赋值，为 undefined，浏览器会把它忽略掉，所以输出 shenzhen 这个函数
+function shenzhen () {}
+var shenzhen
+console.log(shenzhen) // ƒ shenzhen () {}
+
+// 但是如果我们显示给它赋值，输出的就是 undefined 了
+function shenzhen () {}
+var shenzhen = undefined
+console.log(shenzhen) // undefined
+```
+
+因此，对于这一题，我们可以对它“翻译”如下，就很容易得到它的运行结果：
+
+```js
+var a
+function a () {
+  alert(10)
+}
+alert(a) // function a() { alert(10) }
+a() // 10
+a = 3
+alert(a) // 3
+a = 6
+a() // Uncaught TypeError: a is not a function
+```
+
+函数提升还有一有些需要注意的地方，比如下面这些例子。
+
+```js
+function fn () {
+  console.log(1)
+}
+// 相当于在这里有一句声明：var fn
+// 但是因为在这外面还定义了另一个 fn，所以覆盖掉了
+if (false) {
+  // 此处函数会发生提升
+  function fn () {
+    console.log(2)
+  }
+}
+console.log(fn)
+/*
+  ƒ fn () {
+    console.log(1)
+  }
+*/
+
+function fn () {
+  console.log(1)
+}
+function init () {
+  // 相当于这里其实有一句声明：var fn
+  if (false) {
+    // 此处函数会提升到外层函数顶端，但是提升的只是函数名，不是函数体
+    function fn () {
+      console.log(2)
+    }
+  }
+  console.log(fn)
+}
+init() // undefined
+
+function fn () {
+  console.log(1)
+}
+function init () {
+  console.log(fn)
+  if (false) {
+    function fn () {
+      console.log(2)
+    }
+  }
+}
+init() // undefined
+```
 
 ```js
 var x = 1, y = 0, z = 0
