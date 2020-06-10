@@ -14,7 +14,7 @@ a = 6
 a()
 ```
 
-**答案解析：**
+> 答案解析：
 
 - `undefined` 和 `not defined` 不是一个东西。undefined 说明这个变量没赋值，但是是存在的；not defined 报错，说明这个变量压根就不存在。
 
@@ -217,6 +217,8 @@ function init () {
 init() // undefined
 ```
 
+下面这道题在上一题的基础上加强一下。
+
 ```js
 var x = 1, y = 0, z = 0
 function add (x) {
@@ -230,6 +232,39 @@ function add (x) {
 z = add(x)
 console.log(z)
 ```
+
+> 答案解析：
+
+对于这道题，首先来看上半部分：
+
+```js
+var x = 1, y = 0, z = 0
+function add (x) {
+  return (x = x + 1)
+}
+y = add(x)
+console.log(y) // 2
+```
+
+可以看到输出 y 的值为2。
+
+这时候如果把下半部分还回来：
+
+```js
+var x = 1, y = 0, z = 0
+function add (x) {
+  return (x = x + 1)
+}
+y = add(x)
+console.log(y) // 4
+function add (x) {
+  return (x = x + 3)
+}
+z = add(x)
+console.log(z) // 4
+```
+
+可以看到输出 y 和 z 值都是4。这是因为两个函数都发生了提升，并且下面的 add 函数把上面的 add 函数重写覆盖了，所以最后起作用的函数就是下面那个。需要注意的是，这里 (x = x + 1) 其实就是一句赋值语句而已，跟 x = x + 1 没什么区别，加个括号只是想干扰而已。
 
 2. 请写出如下输出值，并解释为什么。
 
@@ -254,6 +289,191 @@ var p = test.init(go)
 p()
 ```
 
+> 答案解析：
+
+- **globalThis**
+
+现在有一个全局属性 [globalThis](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/globalThis) 包含全局的 this 值，类似于全局对象。
+
+JavaScript 语言存在一个顶层对象，它提供全局环境（即全局作用域），所有代码都是在这个环境中运行。但是，顶层对象在各种实现里面是不统一的。
+
+浏览器里面，顶层对象是 window，但 Node 和 Web Worker 没有 window。
+浏览器和 Web Worker 里面，self 也指向顶层对象，但是 Node 没有 self。
+Node 里面，顶层对象是 global，但其他环境都不支持。
+
+为了能够在任何情况下，都能够取到顶层对象，ES6 引入了 globalThis 作为顶层对象。在任何环境下，globalThis 都是存在的，都可以从它拿到顶层对象，只想全局环境下的 this。
+
+- **self 属性**
+
+[self](https://www.w3school.com.cn/jsref/prop_win_self.asp) 属性返回对窗口自身的只读引用。等价于 [window](https://www.w3school.com.cn/jsref/dom_obj_window.asp) 属性。
+
+**我们平时在保存 this 时不要写成 var self = this，因为这样会把 self 属性重写了**，可以用 var that = this 这种方式。
+
+```js
+self.self === self // true
+```
+
+现在我们把这道题拆开来看：
+
+```js
+this.a = 20
+var test = {
+  a: 50,
+  init: function (fn) {
+    console.log(this.a)
+  }
+}
+test.init() // 50
+```
+
+**谁调用它，this 就指向谁**。在这里，test 调用了的 init 函数，因此这里的 this 指向了 test，所以输出的值为 50。
+
+在此基础上，再对它复杂化一些：
+
+```js
+this.a = 20
+var test = {
+  a: 50,
+  init: function (fn) {
+    function go () {
+      console.log(this.a)
+    }
+    go()
+  }
+}
+test.init() // 20
+```
+
+这段代码中，go 函数执行的时候没有人去调用它，因此它里面的 this 指向的是 window 对象，所以输出的值为 20。
+
+但是在严格模式下，不让 this 指向 window 对象，会报错。
+
+```js
+'use strict'
+this.a = 20
+var test = {
+  a: 50,
+  init: function (fn) {
+    function go () {
+      console.log(this.a)
+    }
+    go()
+  }
+}
+test.init() // Uncaught TypeError: Cannot read property 'a' of undefined
+```
+
+接下来，让我们把代码再改一下：
+
+```js
+this.a = 20
+var test = {
+  a: 50,
+  init: function (fn) {
+    function go () {
+      console.log(this.a)
+    }
+    return go
+  }
+}
+var go = test.init()
+go() // 20
+```
+
+这种情况下，相当于是把 init 函数里的 go 挪到外面来执行了，这时候的 this 指向的还是 window 对象，所以还是输出 20。
+
+继续改代码：
+
+```js
+this.a = 20
+function go () {
+  console.log(this.a)
+  this.a = 30
+}
+go.prototype.a = 40
+var test = {
+  a: 50,
+  init: function (fn) {
+  }
+}
+console.log((new go()).a) // 40 30
+```
+
+如果 go 函数被 new 了的话，那么 go 函数里面的 a 的优先级比 go 函数的原型链上的 a 优先级高。但是如果不 new go 函数，那么它里面的 a 一点用没有。
+
+原型链解决的是一个属性共享、内存复用（内存中对 a 的复用）的问题，即使 new 了无数个 go，指向的都是它，只不过可能 a 的值不一样而已。
+
+上面这段代码的输出结果是40和30。其中，go 函数里面输出的值是40，而外边go的实例输出的值为30。前者是因为在找的时候，并没有 go 函数里面找到 a 的值，因为 this.a = 30 在 console.log(this.a) 后面，所以就去 go 的原型链上面找，找到了40。而外边因为 go 被 new 了，所以 this.a = 30 的优先级高于原型链上的 a 的值，所以实例上 a 的值为30。
+
+再改改代码：
+
+```js
+this.a = 20
+function go () {
+  console.log(this.a)
+  this.a = 30
+}
+go.prototype.a = 40
+var test = {
+  a: 50,
+  init: function (fn) {
+    fn()
+    return fn
+  }
+}
+test.init(go) // 20
+```
+
+可以看到这段代码输出的值为20。
+
+我们用一个 x 来接收 test.init(go) 的值，并输出看看：
+
+```js
+var x = test.init(go)
+console.log(x)
+/*
+ƒ go () {
+  console.log(this.a)
+  this.a = 30
+}
+ */
+```
+
+可以看到输出出来的值为 go 函数。
+
+让我们执行下 x ：
+
+```js
+x() // 20 30
+```
+
+此时输出的是20和30。
+
+综合起来，这道题的输出结果就如下：
+
+```js
+this.a = 20
+function go () {
+  console.log(this.a)
+  this.a = 30
+}
+go.prototype.a = 40
+var test = {
+  a: 50,
+  init: function (fn) {
+    fn()
+    console.log(this.a)
+    return fn
+  }
+}
+console.log((new go()).a) // 40 30
+test.init(go) // 20 50
+var p = test.init(go)
+p() // 30 50 30
+```
+
+最后一句输出30是因为 p 接收了 test.init(go) 返回的值，即 go 函数，其实相当于一个 go 函数实例，所以输出的值为30。
+
 ```js
 var num = 1
 
@@ -266,10 +486,14 @@ function yideng2 () {
 }
 (function () {
  "use strict"
- yideng2 ()
+ yideng2 () // 2
 })()
-yideng ()
+yideng () // Uncaught TypeError: Cannot read property 'num' of undefined
 ```
+
+> 答案解析：
+
+**严格模式只对当前的函数生效**。因此 yideng2 () 里的 this 能够指向 window 对象，输出2；但是 yideng() 里的 this 因为受到严格模式的限制，没法指向 window 对象，所以 this.num 的值为 undefined，执行运算时就报错了。
 
 2-1. 拓展题（请写出以下代码执行结果）
 
