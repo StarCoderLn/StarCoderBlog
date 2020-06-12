@@ -1,7 +1,7 @@
 ---
 home: true
-heroImage: /assets/image/index/index.jpg
-heroText: 鸵鸟蛋的世界
+heroImage: /assets/image/index/index.png
+heroText: 勤奋的小柯基
 tagline: 制作：鸵鸟蛋
 actionText: 快速进入 →
 actionLink: /index/
