@@ -76,6 +76,13 @@ module.exports = {
           { title: 'JavaScript与QA工程师', path: '/javascript/qa' },
           { title: 'JavaScript基础测试', path: '/javascript/jsTest' }
         ]
+      },
+      {
+        title: '算法学习总结',
+        collapsable: false,
+        children: [
+          { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' }
+        ]
       }
     ],
   }
