@@ -83,6 +83,13 @@ module.exports = {
         children: [
           { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' }
         ]
+      },
+      {
+        title: 'Mac 开发体验优化',
+        collapsable: false,
+        children: [
+          { title: '终端美化', path: '/mac/iterm2' }
+        ]
       }
     ],
   }

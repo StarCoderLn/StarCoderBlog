@@ -2,7 +2,7 @@
 
 这是Apache一个集成了MySQL、PHP和Perl的软件，可以运行php文件，启动服务，操作数据库。
 
-#### 安装与使用
+#### :key: Windows 系统上安装与使用
 
 1. 下载XAMPP软件，并按照安装提示一步一步进行安装。
 
@@ -21,6 +21,22 @@
 ![xampp](../.vuepress/public/assets/image/server/xampp4.png 'xampp')
 
 ![xampp](../.vuepress/public/assets/image/server/xampp5.png 'xampp')
+
+#### :key: Mac 系统上安装与使用
+
+1. 在官网上下载 xampp-osx-7.4.6-0-installer.dmg 安装包，然后跟着安装引导一步一步进行安装就可以了。
+
+2. 启动界面和操作界面如下：
+
+![xampp](../.vuepress/public/assets/image/server/xampp6.png 'xampp')
+
+![xampp](../.vuepress/public/assets/image/server/xampp7.png 'xampp')
+
+3. 点击下面的 Open Application Folder 可以打开 xampp 对应的文件夹。同样可以看到这里面有个 htdocs 文件夹，只要把我们写好的代码丢到这里面，然后在浏览器中访问就行了，跟 Windows 上的操作方法是一样的。
+
+![xampp](../.vuepress/public/assets/image/server/xampp8.png 'xampp')
+
+
 
 ## IIS
 
