@@ -187,7 +187,7 @@ ES5 中引入了“严格模式”。同正常模式，或者说宽松/懒惰模
 
 :bell: **ReferenceError 同作用域判别失败相关，而 TypeError 则代表作用域判别成功了，但是对结果的操作是非法或不合理的**。
 
-### :blue_book: 总结
+### :blue_book: 小结
 
 1. 作用域是一套规则，用于确定在何处以及如何查找变量（标识符）。
 
@@ -427,7 +427,7 @@ JavaScript 引擎会在编译阶段进行数项的性能优化。其中**有些�
 
 :bell: **因此如果代码中大量使用 eval(..) 或 with，那么运行起来一定会变得非常慢**。
 
-### :blue_book: 总结
+### :blue_book: 小结
 
 1. 词法作用域意味着作用域是由书写代码时函数声明的位置来决定的。编译的词法分析阶段基本能够知道全部标识符在哪里以及是如何声明的，从而能够预测在执行过程中如何对它们进行查找。
 
@@ -926,7 +926,7 @@ console.log(a) // 3
 console.log(b) // ReferenceError
 ```
 
-### :blue_book: 总结
+### :blue_book: 小结
 
 1. 函数是 JavaScript 中最常见的作用域单元。本质上，声明在一个函数内部的变量或函数会在所处的作用域中“隐藏”起来，这是有意为之的良好软件的设计原则。
 
@@ -937,3 +937,476 @@ console.log(b) // ReferenceError
 4. 在 ES6 中引入了 let 关键字（var 关键字的表亲），用来在任意代码块中声明变量。if (..) { let a = 2; } 会声明一个劫持了 if 的 { .. } 块的变量，并且将变量添加到这个块中。
 
 5. 有些人认为块作用域不应该完全作为函数作用域的替代方案。两种功能应该同时存在，开发者可以并且也应该根据需要选择使用何种作用域，创造可读、可维护的优良代码。
+
+## :books: 提升
+
+先看下面两段代码：
+
+```js
+a = 2
+var a
+console.log(a) // 2
+```
+
+```js
+console.log(a)
+var a = 2 // undefined
+```
+
+### :blue_book: 编译器再度来袭
+
+为了明白以上两段代码发生了什么，需要回忆一下前几章的内容。引擎会在解释 JavaScript 代码之前首先对其进行编译。编译阶段中的一部分工作就是找到所有的声明，并用合适的作用域将它们关联起来。第 2 章中展示了这个机制，也正是词法作用域的核心内容。
+
+所以，正确的思考思路是：
+
+:bell: **包括变量和函数在内的所有声明都会在任何代码被执行前首先被处理**。
+
+当你看到 var a = 2; 时，可能会认为这是一个声明。但 JavaScript 实际上会将其看成两个声明：var a; 和 a = 2;。**第一个定义声明是在编译阶段进行的。第二个赋值声明会被留在原地等待执行阶段**。
+
+因此，第一段代码会以如下形式进行处理：
+
+```js
+var a
+a = 2
+console.log(a)
+```
+
+其中第一部分是编译，第二部分是执行。
+
+第二段代码会按照以下流程进行处理：
+
+```js
+var a
+console.log(a)
+a = 2
+```
+
+不难发现，变量和函数声明被移动到了最上面，这个过程就叫作**提升**。因此，**先有声明后有赋值**。
+
+::: warning 注意
+
+只有声明本身会被提升，而赋值或其他运行逻辑会留在原地。如果提升改变了代码执行的顺序，会造成非常严重的破坏。
+
+```js
+foo()
+
+function foo () {
+  console.log(a) // undefined
+  var a = 2
+}
+```
+
+:::
+
+foo 函数的声明被提升了，并且 foo(..) 函数自身也会在内部对 var a 进行提升，因此第一行中的调用可以正常执行。这段代码可以理解成下面的形式：
+
+```js
+function foo () {
+  var a
+  console.log(a) // undefined
+  a = 2
+}
+foo()
+```
+
+:bell: **每个作用域都会进行提升操作**。
+
+:bell: **函数声明会被提升，但是函数表达式却不会被提升**。
+
+```js
+foo() // Uncaught TypeError: foo is not a function
+
+var foo = function bar() {
+  // ...
+}
+```
+
+这段程序中的变量标识符 foo() 被提升并分配给所在作用域（在这里是全局作用域），因此 foo() 不会导致 ReferenceError。但是 foo 此时并没有赋值（如果它是一个函数声明而不是函数表达式，那么就会赋值）。foo() 由于对 undefined 值进行函数调用而导致非法操作，因此抛出 TypeError 异常。
+
+:bell: **即使是具名的函数表达式，名称标识符在赋值之前也无法在所在作用域中使用**。
+
+```js
+foo() // Uncaught TypeError: foo is not a function
+bar() // Uncaught ReferenceError: bar is not defined
+
+var foo = function bar() {
+  // ...
+}
+```
+
+这段代码经过提升后，会被理解成以下形式：
+
+```js
+var foo
+
+foo()
+bar()
+
+foo = function () {
+  var bar = ...self...
+  // ...
+}
+```
+
+### :blue_book: 函数优先
+
+函数声明和变量声明都会被提升。但是有一个值得注意的细节是：
+
+:bell: **函数会首先被提升，然后才是变量。**
+
+```js
+foo()
+
+var foo
+
+function foo() {
+  console.log(1)
+}
+
+foo = function() {
+  console.log(2)
+}
+```
+
+这段代码会输出1而不是2！它会被引擎理解为如下形式：
+
+```js
+function foo() {
+  console.log(1)
+}
+
+foo() // 1
+
+foo = function() {
+  console.log(2)
+}
+```
+
+注意，var foo 尽管出现在 function foo()... 的声明之前，但它是重复的声明（因此被忽略了），因为函数声明会被提升到普通变量之前。
+
+:bell: **尽管重复的 var 声明会被忽略掉，但出现在后面的函数声明还是可以覆盖前面的**。
+
+```js
+foo() // 3
+
+function foo() {
+  console.log(1)
+}
+
+var foo = function() {
+  console.log(2)
+}
+
+function foo() {
+  console.log(3)
+}
+```
+
+一个普通块内部的函数声明通常会被提升到所在作用域的顶部。
+
+```js
+foo() // Uncaught TypeError: foo is not a function
+
+var a = true
+if (a) {
+  function foo() {
+    console.log('a')
+  }
+} else {
+  function foo() {
+    console.log('b')
+  }
+}
+```
+
+应该尽可能避免在块内部声明函数。
+
+### :blue_book: 小结
+
+1. JavaScript 会将 var a = 2; 看成是 var a 和 a = 2 两个单独的声明，第一个是在编译阶段的任务，第二个是在执行阶段的任务。
+
+2. 无论作用域中的声明出现在什么地方，都将在代码本身被执行前首先进行处理。可以将这个过程形象地想象成所有的声明（变量和函数）都会被“移动”到各自作用域的最顶端，这个过程被称为提升。
+
+3. 声明本身会被提升，而包括函数表达式的赋值在内的赋值操作并不会提升。
+
+4. 要注意避免重复声明，特别是当普通的 var 声明和函数声明混合在一起的时候，否则会引起很多危险的问题！
+
+## :books: 作用域闭包
+
+闭包是基于词法作用域书写代码时所产生的自然结果，你甚至不需要为了利用它们而有意识地创建闭包。闭包的创建和使用在你的代码中随处可见。你缺少的是根据你自己的意愿来识别、拥抱和影响闭包的思维环境。
+
+### :blue_book: 什么是闭包
+
+闭包的定义如下：
+
+:bell: **当函数可以记住并访问所在的词法作用域时，就产生了闭包，即使函数是在当前词法作用域之外执行。**
+
+下面用一些代码来解释这个定义：
+
+```js
+function foo() {
+  var a = 2
+  function bar() {
+    console.log(a) // 2
+  }
+  bar()
+}
+foo()
+```
+
+这段代码看起来和嵌套作用域中的示例代码很相似。基于词法作用域的查找规则，函数 bar() 可以访问外部作用域中的变量 a（这个例子中的是一个 RHS 引用查询）。
+
+:question: 这是闭包吗？
+
+技术上来讲，也许是。但根据前面的定义，确切地说并不是。最准确地用来解释 bar() 对 a 的引用的方法是**词法作用域的查找规则，而这些规则只是闭包的一部分**。（但却是非常重要的一部分！）
+
+从纯学术的角度说，在上面的代码片段中，函数 bar() 具有一个涵盖 foo() 作用域的闭包（事实上，涵盖了它能访问的所有作用域，比如全局作用域）。也可以认为 bar() 被封闭在了 foo() 的作用域中。为什么呢？原因简单明了，因为 bar() 嵌套在 foo() 内部。
+
+但是通过这种方式定义的闭包并不能直接进行观察，也无法明白在这个代码片段中闭包是如何工作的。我们可以很容易地理解词法作用域，而闭包则隐藏在代码之后的神秘阴影里，并不那么容易理解。
+
+下面这段代码就清晰地展示了闭包：
+
+```js
+function foo() {
+  var a = 2
+  function bar() {
+    console.log(a)
+  }
+  return bar
+}
+
+var baz = foo()
+baz() // 2 —— 这才是闭包的效果
+```
+
+- 函数 bar() 的词法作用域能够访问 foo() 的内部作用域。然后**我们将 bar() 函数本身当作一个值类型进行传递。在这个例子中，我们将 bar 所引用的函数对象本身当作返回值。**
+
+- 在 foo() 执行后，其返回值（也就是内部的 bar() 函数）赋值给变量 baz 并调用 baz()，实际上只是通过不同的标识符引用调用了内部的函数 bar()。
+
+- bar() 显然可以被正常执行。但是在这个例子中，它在自己定义的词法作用域以外的地方执行。
+
+- 在 foo() 执行后，通常会期待 foo() 的整个内部作用域都被销毁，因为我们知道引擎有垃圾回收器用来释放不再使用的内存空间。由于看上去 foo() 的内容不会再被使用，所以很自然地会考虑对其进行回收。
+
+- :bell: 而闭包的“神奇”之处正是可以阻止这件事情的发生。**事实上内部作用域依然存在，因此没有被回收**。谁在使用这个内部作用域？原来是 **bar() 本身在使用**。
+
+- 拜 bar() 所声明的位置所赐，它拥有涵盖 foo() 内部作用域的闭包，使得该作用域能够一直存活，以供 bar() 在之后任何时间进行引用。
+
+- bar() 依然持有对该作用域的引用，而这个引用就叫作闭包。
+
+- 这个函数在定义时的词法作用域以外的地方被调用。闭包使得函数可以继续访问定义时的词法作用域。
+
+无论使用何种方式对函数类型的值进行传递，当函数在别处被调用时都可以观察到闭包。
+
+```js
+function foo() {
+  var a = 2
+  function baz() {
+    console.log(a) // 2
+  }
+  bar(baz)
+}
+function bar(fn) {
+  fn() // 这是闭包
+}
+```
+
+把内部函数 baz 传递给 bar，当调用这个内部函数时（现在叫作 fn），它涵盖的 foo() 内部作用域的闭包就可以观察到了，因为它能够访问 a。
+
+传递函数也可以是间接的。
+
+```js
+var fn
+
+function foo() {
+  var a = 2
+  function baz() {
+    console.log(a)
+  }
+  fn = baz // 将 baz 分配给全局变量
+}
+
+function bar() {
+  fn() // 这也是闭包
+}
+
+foo()
+bar() // 2
+```
+
+无论通过何种手段将内部函数传递到所在的词法作用域以外，它都会持有对原始定义作用域的引用，无论在何处执行这个函数都会使用闭包。
+
+```js
+function wait(message) {
+  setTimeout(function timer() {
+    console.log(message)
+  }, 1000)
+}
+wait('Hello World!') // Hello World!
+```
+
+将一个内部函数（名为 timer）传递给 setTimeout(..)。timer 具有涵盖 wait(..) 作用域的闭包，因此还保有对变量 message 的引用。wait(..) 执行 1000 毫秒后，它的内部作用域并不会消失，timer 函数依然保有 wait(..) 作用域的闭包。
+
+下面是一段使用 jQuery 的代码：
+
+```js
+function setupBot(name, selector) {
+  $(selector).click(function activator() {
+    console.log('Activating:' + name)
+  })
+}
+setupBot("Closure Bot 1", "#bot_1")
+setupBot("Closure Bot 2", "#bot_2")
+```
+
+在定时器、事件监听器、Ajax 请求、跨窗口通信、Web Workers 或者任何其他的异步（或者同步）任务中，只要使用了回调函数，实际上就是在使用闭包！
+
+::: warning 注意
+
+通常认为 IIFE 是典型的闭包例子，但是根据之前对闭包的定义，我并不是很同意这个观点。
+
+```js
+var a = 2;
+(function IIFE() {
+  console.log(a)
+})()
+```
+
+虽然这段代码可以正常工作，但严格来讲它并不是闭包。为什么？**因为函数（示例代码中 的 IIFE）并不是在它本身的词法作用域以外执行的**。它在定义时所在的作用域中执行（而外部作用域，也就是全局作用域也持有 a）。**a 是通过普通的词法作用域查找而非闭包被发现的**。
+
+**尽管 IIFE 本身并不是观察闭包的恰当例子，但它的确创建了闭包，并且也是最常用来创建可以被封闭起来的闭包的工具**。因此 IIFE 的确同闭包息息相关，即使本身并不会真的使用闭包。
+
+:::
+
+### :blue_book: 循环和闭包
+
+要说明闭包，for 循环是最常见的例子：
+
+```js
+for (var i = 1; i <= 5; i++) {
+  setTimeout(function timer() {
+    console.log(i)
+  }, i * 1000)
+}
+```
+
+正常情况下，我们对这段代码行为的预期是分别输出数字 1~5，每秒一次，每次一个。但实际上，这段代码在运行时会以每秒一次的频率输出五次 6。
+
+这是为什么？ 首先解释 6 是从哪里来的。这个循环的终止条件是 i 不再 <=5。条件首次成立时 i 的值是 6。因此，输出显示的是循环结束时 i 的最终值。
+
+延迟函数的回调会在循环结束时才执行。事实上，当定时器运行时即使每个迭代中执行的是 setTimeout(.., 0)，所有的回调函数依然是在循环结束后才会被执行，因此会每次输出一个 6 出来。
+
+这里引伸出一个更深入的问题，代码中到底有什么缺陷导致它的行为同语义所暗示的不一致呢？
+
+缺陷是我们试图假设循环中的每个迭代在运行时都会给自己“捕获”一个 i 的副本。但是根据作用域的工作原理，实际情况是**尽管循环中的五个函数是在各个迭代中分别定义的，但是它们都被封闭在一个共享的全局作用域中，因此实际上只有一个 i**。
+
+如果通过 IIFE 来为循环过程中的每次迭代都创建一个闭包作用域，能解决问题吗？
+
+```js
+for (var i = 1; i <= 5; i++) {
+  (function () {
+    setTimeout(function timer() {
+      console.log(i)
+    }, i * 1000)
+  })()
+}
+```
+
+答案是不行。因为我们的 IIFE 只是一个什么都没有的空作用域。它需要包含一点实质内容才能为我们所用。
+
+它需要有自己的变量，用来在每个迭代中储存 i 的值：
+
+```js
+for (var i = 1; i <= 5; i++) {
+  (function() {
+    var j = i
+    setTimeout(function timer() {
+      console.log(j)
+    }, j * 1000)
+  })()
+}
+```
+
+这样就可以了！
+
+对这段代码进行一些改进：
+
+```js
+for (var i = 1; i <= 5; i++) {
+  (function(j) {
+    setTimeout(function timer() {
+      console.log(j)
+    }, j * 1000)
+  })(i)
+} 
+```
+
+在迭代内使用 IIFE 会为每个迭代都生成一个新的作用域，使得延迟函数的回调可以将新的作用域封闭在每个迭代内部，每个迭代中都会含有一个具有正确值的变量供我们访问。
+
+上面的问题除了用 IIFE 解决，也可以用块作用域来解决。
+
+```js
+for (var i = 1; i <= 5; i++) {
+  let j = i
+  setTimeout(function timer() {
+    console.log(j)
+  }, j * 1000)
+}
+```
+
+改进一下：
+
+```js
+for (let i = 1; i <= 5; i++) {
+  setTimeout(function timer() {
+    console.log(i)
+  }, i * 1000)
+}
+```
+
+完美解决！
+
+### :blue_book: 模块
+
+利用闭包还可以实现另外一个强大的东西：模块。
+
+先看这段代码：
+
+```js
+function foo() {
+  var something = 'cool'
+  var another = [1, 2, 3]
+  function doSomething() {
+    console.log(something)
+  }
+  function doAnother() {
+    console.log(another.join('!'))
+  }
+}
+```
+
+这段代码只有两个私有数据变量 something 和 another，以及 doSomething() 和 doAnother() 两个内部函数，它们的词法作用域（而这就是闭包）也就是 foo() 的内部作用域。
+
+再看下面这段：
+
+```js
+function CoolModule() {
+  var something = 'cool'
+  var another = [1, 2, 3]
+  function doSomething() {
+    console.log(something)
+  }
+  function doAnother() {
+    console.log(another.join('!'))
+  }
+  return {
+    doSomething: doSomething,
+    doAnother: doAnother
+  }
+}
+var foo = CoolModule()
+
+foo.doSomething() // cool
+foo.doAnother() //1!2!3
+```
+
+这个模式在 JavaScript 中被称为模块。最常见的实现模块模式的方法通常被称为**模块暴露**，这里展示的是其变体。
