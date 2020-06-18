@@ -44,7 +44,8 @@ module.exports = {
           { title: 'PHP入门', path: '/php/php' },
           { title: 'phpMyAdmin', path: '/php/phpMyAdmin' },
           { title: 'PHP PDO', path: '/php/phpPdo' },
-          { title: 'PHP面向对象', path: '/php/phpOop' }
+          { title: 'PHP面向对象', path: '/php/phpOop' },
+          { title: 'Yii2 踩坑记录', path: '/php/yii' }
         ]
       },
       {

@@ -59,6 +59,8 @@ c:\xampp\mysql\bin\mysqld.exe --defaults-file=c:\xampp\mysql\bin\my.ini mysql
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin10.png 'phpMyAdmin')
 
+:bell: 补充下：数据库除了使用 phpMyAdmin 之外，我们还可以使用 MySQL 的 [MySQL Workbench](https://www.mysql.com/products/workbench/)。
+
 ## PHP与MySQL
 
 上面我们其实是在直接操作数据库，但是实际开发过程中，应该是前端连接PHP，然后PHP连接数据库，通过PHP来对数据库进行操作的。前端连接PHP有两种方式，一种是通过`Form`表单，另外一种是通过`Ajax`请求。下面就来介绍下PHP如何连接数据库。  
