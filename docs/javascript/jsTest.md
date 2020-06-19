@@ -976,3 +976,191 @@ yideng.method(fn, 1) // 10 2
 **10. 使用 setTimeout 模拟 setInterval。**
 
 **11. 手写实现 Object.create 的基本原理。**
+
+## 基础测试 E
+
+:lock: 1. 请写出如下代码输出值，并解释为什么。
+
+```js
+console.log({} + []);
+{} + [];
+[] + {};
+{} + {};
+console.log([] == false);
+console.log({} == false);
+```
+
+```js
+if ([]) {
+  console.log([] == false);
+}
+('b' + 'a' + + 'a' + 'a').toLocaleLowerCase();
+0 == '0'
+Boolean('0') == Boolean(0)
+NaN == 0;
+NaN <= 0;
+```
+
+:lock: 2. 请写出如下输出值，并完成附加题的作答。
+
+```js
+function fn() {
+  console.log(this.length);
+}
+var yideng = {
+  length: 5,
+  method: function() {
+    'use strict';
+    fn();
+    arguments[0]();
+  }
+}
+const result = yideng.method.bind(null);
+result(fn, 1);
+```
+
+:lock: 附加题
+
+```js
+function bar() {
+  console.log(myName);
+}
+function foo() {
+  var myName = '林楠';
+  bar();
+}
+var myName = '深圳大学';
+foo();
+```
+
+:lock: 3. 请问变量 a 会被 GC 回收么，为什么？
+
+```js
+function test() {
+  var a = 'yideng';
+  return function() {
+    eval('')
+  }
+}
+test()();
+```
+
+:lock: 4. 请写出以下代码的输出值，并解释原因。
+
+```js
+Object.prototyp.a = 'a';
+Function.prototype.a = 'a1';
+function Person() {};
+var yideng = new Person();
+console.log(Person.a);
+console.log(yideng.a);
+console.log(1..a);
+console.log(1.a);
+console.log(yideng.__proto__.__proto__.constructor.constructor.constructor);
+```
+
+Object.prototype 和 Function.prototype 打印的内容差距很大的原因是什么？
+
+:lock: 5. 请写出如下代码执行结果。
+
+```js
+var a = {}, b = { key: 'b' }, c = { key: 'c' };
+a[b] = 123;
+a[c] = 456;
+console.log(a[b]);
+console.log(Symbol(b) == Symbol(b));
+```
+
+:lock: 6. 请写出你了解的 ES6 的元编程。
+
+:lock: 7. 请按照下方要求作答，并解释原理。请解释下 babel 编译后的 async 原理。
+
+```js
+let a = 0;
+let yideng = async() => {
+  a = a + await 10;
+  console.log(a);
+}
+yideng();
+console.log(++a);
+```
+
+加强一下
+
+```js
+async function async1() {
+  console.log(1);
+  await async2();
+  console.log(3);
+}
+async function async2() {
+  console.log(2);
+}
+async1();
+console.log(4);
+```
+
+:lock: 8. 请问点击 <button id="test"></button> 会有反应么？为什么？能解决么？
+
+```js
+$('#test').click(function(argument) {
+  console.log(1);
+})
+setTimeout(function() {
+  console.log(2);
+}, 0)
+while (true) {
+  console.log(Math.random());
+}
+```
+
+:lock: 9. 请先书写如下代码执行结果，并用 ES5 实现 ES6 PromiseA+ 规范的代码，同时你能解释下如何使用 Promise 完成事务的操作么。
+
+```js
+const pro = new Promise((resolve, reject) => {
+  const innerpro = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(1);
+    })
+    console.log(2);
+    resolve(3);
+  })
+  innerpro.then(res => console.log(res));
+  resolve(4);
+  console.log('yideng');
+})
+pro.then(res => console.log(res));
+console.log('end');
+```
+
+:lock: 10. 请写出如下代码的输出值，并解释为什么。
+
+```js
+var s = [];
+var arr = s;
+for (var i = 0; i < 3; i++) {
+  var pusher = {
+    value: 'item' + i
+  }, tmp;
+  if (i !== 2) {
+    tmp = [];
+    pusher.children = tmp;
+  }
+  arr.push(pusher);
+  arr = tmp;
+}
+console.log(s[0]);
+```
+
+:lock: 请描述你理解的函数式编程，并书写如下代码的结果。那么你能使用 Zone + RX 写出一段 FRP 的代码么。
+
+```js
+var Container = function(x) {
+  this._value = x;
+}
+Container.of = x => new Container(x);
+Container.prototype.map = function(f) {
+  return Container.of(f(this._value));
+}
+Container.of(3).map(x => x + 1).map(x => 'Result is ' + x);
+```
