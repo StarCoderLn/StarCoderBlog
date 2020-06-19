@@ -1,3 +1,5 @@
+# 第一部分 作用域和闭包
+
 ## :books: 作用域是什么
 
 ### :blue_book: 作用域出现的背景
@@ -1418,17 +1420,221 @@ foo.doAnother() //1!2!3
 这个对象类型的返回值最终被赋值给外部的变量 foo，然后就可以通过它来访问 API 中的属性方法，比如 foo.doSomething()。
 
 ::: warning 注意
-从模块中返回一个实际的对象并不是必须的，也可以直接返回一个内部函数。jQuery 就是一个很好的例子。jQuery 和 $ 标识符就是 jQuery 模块的公共 API，但它们本身都是函数(由于函数也是对象，它们本身也可以拥有属性)。
+**从模块中返回一个实际的对象并不是必须的，也可以直接返回一个内部函数**。jQuery 就是一个很好的例子。jQuery 和 $ 标识符就是 jQuery 模块的公共 API，但它们本身都是函数(由于函数也是对象，它们本身也可以拥有属性)。
 :::
 
-doSomething() 和 doAnother() 函数具有涵盖模块实例内部作用域的闭包(通过调用 CoolModule() 实现)。当通过返回一个含有属性引用的对象的方式来将函数传递到词法作用域外部时，我们已经创造了可以观察和实践闭包的条件。
+doSomething() 和 doAnother() 函数**具有涵盖模块实例内部作用域的闭包(通过调用 CoolModule() 实现)**。当通过返回一个含有属性引用的对象的方式来将函数传递到词法作用域外部时，我们已经创造了可以观察和实践闭包的条件。
 
-简单来说，模块需要具备两个必要条件：
+:bell: **简单来说，模块需要具备两个必要条件：**
 
 1. 必须**有外部的封闭函数**，该函数必须**至少被调用一次**（每次调用都会创建一个新的模块实例）。
 
 2. 封闭函数必须**返回至少一个内部函数**，这样内部函数才能在私有作用域中形成闭包，并且可以访问或者修改私有的状态。
 
-一个具有函数属性的对象本身并不是真正的模块。从方便观察的角度看，一个从函数调用所返回的，只有数据属性而没有闭包函数的对象并不是真正的模块。
+一个具有函数属性的对象本身并不是真正的模块。**从方便观察的角度看，一个从函数调用所返回的，只有数据属性而没有闭包函数的对象并不是真正的模块**。
 
+上面那段代码中有一个叫作 CoolModule() 的独立的模块创建器，可以被调用任意多次，每次调用都会创建一个新的模块实例。当只需要一个实例时，可以对这个模式进行简单的改进来实现**单例模式**：
 
+```js
+var foo = (function CoolModule() {
+  var something = 'cool'
+  var another = [1, 2, 3]
+
+  function doSomething() {
+    console.log(something)
+  }
+
+  function doAnother() {
+    console.log(another.join('!'))
+  }
+
+  return {
+    doSomething: doSomething,
+    doAnother: doAnother
+  }
+})()
+
+foo.doSomething() // cool
+foo.doAnother() // 1!2!3
+```
+
+我们将模块函数转换成了 IIFE，立即调用这个函数并将返回值直接赋值给单例的模块实例标识符 foo。
+
+模块也是普通的函数，因此**可以接受参数**：
+
+```js
+function CoolModule(id) {
+  function identify() {
+    console.log(id)
+  }
+  return {
+    identify: identify
+  }
+}
+
+var foo1 = CoolModule('foo1')
+var foo2 = CoolModule('foo2')
+
+foo1.identify() // foo1
+foo2.identify() // foo2
+```
+
+模块模式另一个简单但强大的变化用法是，**命名将要作为公共 API 返回的对象**：
+
+```js
+var foo = (function CoolModule(id) {
+  function change() {
+    // 修改公共API
+    publicAPI.identify = identify2
+  }
+
+  function identify1() {
+    console.log(id)
+  }
+
+  function identify2() {
+    console.log(id.toUpperCase())
+  }
+
+  var publicAPI = {
+    change: change,
+    identify: identify1
+  }
+
+  return publicAPI
+})('foo module')
+
+foo.identify() // foo module
+foo.change()
+foo.identify() // FOO MODULE
+```
+
+通过在模块实例的内部保留对公共 API 对象的内部引用，可以从内部对模块实例进行修改，包括添加或删除方法和属性，以及修改它们的值。
+
+### :blue_book: 现代的模块机制
+
+大多数模块依赖加载器/管理器本质上都是将这种模块定义封装进一个友好的 API。
+
+```js
+var MyModules = (function Manager() {
+  var modules = {}
+
+  function define(name, deps, impl) {
+    for (var i = 0; i < deps.length; i++) {
+      deps[i] = modules[deps[i]]
+    }
+    modules[name] = impl.apply(impl, deps)
+  }
+
+  function get(name) {
+    return modules[name]
+  }
+
+  return {
+    define: define,
+    get: get
+  }
+})()
+```
+
+这段代码的核心是 `modules[name] = impl.apply(impl, deps)`。为了模块的定义引入了包装函数（可以传入任何依赖），并且将返回值，也就是模块的 API，储存在一个根据名字来管理的模块列表中。
+
+下面展示如何使用它来定义模块：
+
+```js
+MyModules.define('bar', [], function() {
+  function hello(who) {
+    return 'Let me introduce：' + who
+  }
+
+  return {
+    hello: hello
+  }
+})
+
+MyModules.define('foo', ['bar'], function(bar) {
+  var hungry = 'hippo'
+
+  function awesome() {
+    console.log(bar.hello(hungry).toUpperCase())
+  }
+
+  return {
+    awesome: awesome
+  }
+})
+
+var bar = MyModules.get('bar')
+var foo = MyModules.get('foo')
+
+console.log(bar.hello('hippo')) // Let me introduce：hippo
+foo.awesome() // LET ME INTRODUCE：HIPPO
+```
+
+"foo" 和 "bar" 模块都是通过一个返回公共 API 的函数来定义的。"foo" 甚至接受 "bar" 的示例作为依赖参数，并能相应地使用它。
+
+模块模式的两个特点：为函数定义引入包装函数，并保证它的返回值和模块的 API 保持一致。
+
+### :blue_book: 未来的模块机制
+
+ES6 中为模块增加了一级语法支持。但通过模块系统进行加载时，ES6 会将文件当作独立的模块来处理。每个模块都可以导入其他模块或特定的 API 成员，同样也可以导出自己的 API 成员。
+
+::: warning 注意
+
+基于函数的模块并不是一个能被稳定识别的模式（编译器无法识别），它们的 API 语义只有在运行时才会被考虑进来。因此可以在运行时修改一个模块 的 API。
+
+相比之下，ES6 模块 API 更加稳定（API 不会在运行时改变）。由于编辑器知道这一点，因此可以在（的确也这样做了）编译期检查对导入模块的 API 成员的引用是否真实存在。如果 API 引用并不存在，编译器会在运行时抛出一个或多个“早期”错误，而不会像往常一样在运行期采用动态的解决方案。
+
+:::
+
+:bell: **ES6 的模块没有“行内”格式，必须被定义在独立的文件中（一个文件一个模块）**。浏览器或引擎有一个默认的“模块加载器”可以在导入模块时异步地加载模块文件。
+
+比如：
+
+bar.js:
+
+```js
+function hello(who) {
+  return 'Let me introduce：' + who
+}
+
+export hello
+```
+
+foo.js:
+
+```js
+// 仅从 bar 模块导入 hello()
+import hello from 'bar'
+
+var hungry = 'hippo'
+
+function awesome() {
+  console.log(hello(hungry).toUpperCase())
+}
+
+export awesome
+```
+
+baz.js:
+
+```js
+// 导入完整的 foo 和 bar 模块
+module foo from 'foo';
+module bar from 'bar';
+
+console.log(bar.hello('rhino')) // Let me introduce：rhino
+foo.awesome() // LET ME INTRODUCE: HIPPO
+```
+
+import 可以将一个模块中的一个或多个 API 导入到当前作用域中，并分别绑定在一个变量上（在我们的例子里是 hello）。module 会将整个模块的 API 导入并绑定到一个变量上（在我们的例子里是 foo 和 bar）。export 会将当前模块的一个标识符（变量、函数）导出为公共 API。这些操作可以在模块定义中根据需要使用任意多次。
+
+### :blue_book: 小结
+
+1. 当函数可以记住并访问所在的词法作用域，即使函数是在当前词法作用域之外执行，这时就产生了闭包。闭包是一个非常强大的工具，可以用多种形式来实现模块等模式。
+
+2. 模块有两个主要特征：
+  
+  （1）为创建内部作用域而调用了一个包装函数；
+
+  （2）包装函数的返回值必须至少包括一个对内部函数的引用，这样就会创建涵盖整个包装函数内部作用域的闭包。

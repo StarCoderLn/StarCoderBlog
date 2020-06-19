@@ -70,7 +70,7 @@ module.exports = {
         title: 'JavaScript',
         collapsable: false,
         children: [
-          { title: '你不知道的JavaScript', path: '/javascript/jsUnknow' },
+          { title: '你不知道的JavaScript（上）', path: '/javascript/jsUnknow1' },
           { title: 'ECMAScript', path: '/javascript/ecmascript' },
           { title: '手写Promise', path: '/javascript/promise' },
           { title: 'JavaScript常用工具方法', path: '/javascript/jsUtils' },
