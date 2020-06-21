@@ -35,27 +35,27 @@ c:\xampp\mysql\bin\mysqld.exe --defaults-file=c:\xampp\mysql\bin\my.ini mysql
 
 ## 数据库增删改查
 
-1. 上文我们把数据库启动成功之后，在浏览器中访问`localhost`，然后在XAMPP的欢迎页右上角点击`phpMyAdmin`  
+1. 上文我们把数据库启动成功之后，在浏览器中访问`localhost`，然后在XAMPP的欢迎页右上角点击`phpMyAdmin`。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin5.png 'phpMyAdmin')  
 
-2. 进入`phpMyAdmin`的管理界面
+2. 进入`phpMyAdmin`的管理界面，可以看到左侧菜单默认有5个数据库，除了 test 这个库可以动之外，其他4个库是系统库，不能改动。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin6.png 'phpMyAdmin')
 
-3. 接下来我们就可以新建数据库，填写好表名，以及编码规则。编码规则一定要选择`utf8_general_ci`，防止乱码，然后点击创建
+3. 接下来我们就可以新建数据库，填写好表名，以及编码规则。编码规则一定要选择`utf8_general_ci`，防止乱码，然后点击创建。char 是定长的字段，而 varchar 是可变长的字段，它后面带的数字表示的是这个字段最多能容纳多少个字节。char 的好处是检索速度快，但是会造成空间浪费；varchar 的好处是能够节省空间，用多少给多少，但是检索速度相对较慢。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin7.png 'phpMyAdmin')
 
-4. 创建好数据库之后，就可以创建表了，填写表名字以及所需要的字段数
+4. 创建好数据库之后，就可以创建表了，填写表名字以及所需要的字段数。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin8.png 'phpMyAdmin')
 
-5. 填写相应的字段信息
+5. 填写相应的字段信息。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin9.png 'phpMyAdmin')
 
-6. 接下来就可以通过菜单栏或者SQL语句来对数据库表进行增删改查的操作了。关于SQL语句的具体用法可以参照W3C文档：[SQL](https://www.w3school.com.cn/sql/index.asp)
+6. 接下来就可以通过菜单栏或者SQL语句来对数据库表进行增删改查的操作了。关于SQL语句的具体用法可以参照W3C文档：[SQL](https://www.w3school.com.cn/sql/index.asp)。
 
 ![phpMyAdmin](../.vuepress/public/assets/image/php/phpMyAdmin10.png 'phpMyAdmin')
 

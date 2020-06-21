@@ -995,8 +995,8 @@ if ([]) {
   console.log([] == false);
 }
 ('b' + 'a' + + 'a' + 'a').toLocaleLowerCase();
-0 == '0'
-Boolean('0') == Boolean(0)
+0 == '0';
+Boolean('0') == Boolean(0);
 NaN == 0;
 NaN <= 0;
 ```
@@ -1039,7 +1039,7 @@ foo();
 function test() {
   var a = 'yideng';
   return function() {
-    eval('')
+    eval('');
   }
 }
 test()();
@@ -1048,7 +1048,7 @@ test()();
 :lock: 4. 请写出以下代码的输出值，并解释原因。
 
 ```js
-Object.prototyp.a = 'a';
+Object.prototype.a = 'a';
 Function.prototype.a = 'a1';
 function Person() {};
 var yideng = new Person();
@@ -1100,7 +1100,7 @@ async1();
 console.log(4);
 ```
 
-:lock: 8. 请问点击 <button id="test"></button> 会有反应么？为什么？能解决么？
+:lock: 8. 请问点击 `<button id="test"></button>` 会有反应么？为什么？能解决么？
 
 ```js
 $('#test').click(function(argument) {

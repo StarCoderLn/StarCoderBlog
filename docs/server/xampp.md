@@ -24,7 +24,9 @@
 
 #### :key: Mac 系统上安装与使用
 
-1. 在官网上下载 xampp-osx-7.4.6-0-installer.dmg 安装包，然后跟着安装引导一步一步进行安装就可以了。
+1. 在官网上下载 xampp-osx-7.4.6-0-installer.dmg 安装包，然后跟着安装引导一步一步进行安装就可以了。注意下载安装包的时候不要选择虚拟机版（带vm 后缀），因为这个版本的安装包大，而且安装的时候可能路径配置还有问题，比较麻烦。
+
+![xampp](../.vuepress/public/assets/image/server/xampp9.png 'xampp')
 
 2. 启动界面和操作界面如下：
 
