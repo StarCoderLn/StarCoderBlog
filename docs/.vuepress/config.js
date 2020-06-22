@@ -80,6 +80,14 @@ module.exports = {
         ]
       },
       {
+        title: 'Node.js',
+        collapsable: false,
+        children: [
+          { title: 'Node.js 入门', path: '/nodejs/nodejsStart' },
+          { title: 'Node.js 基本使用', path: '/nodejs/nodejsApi' }
+        ]
+      },
+      {
         title: '算法学习总结',
         collapsable: false,
         children: [
