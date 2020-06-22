@@ -1589,45 +1589,7 @@ ES6 中为模块增加了一级语法支持。但通过模块系统进行加载�
 
 :bell: **ES6 的模块没有“行内”格式，必须被定义在独立的文件中（一个文件一个模块）**。浏览器或引擎有一个默认的“模块加载器”可以在导入模块时异步地加载模块文件。
 
-比如：
-
-bar.js:
-
-```js
-function hello(who) {
-  return 'Let me introduce：' + who
-}
-
-export hello
-```
-
-foo.js:
-
-```js
-// 仅从 bar 模块导入 hello()
-import hello from 'bar'
-
-var hungry = 'hippo'
-
-function awesome() {
-  console.log(hello(hungry).toUpperCase())
-}
-
-export awesome
-```
-
-baz.js:
-
-```js
-// 导入完整的 foo 和 bar 模块
-module foo from 'foo';
-module bar from 'bar';
-
-console.log(bar.hello('rhino')) // Let me introduce：rhino
-foo.awesome() // LET ME INTRODUCE: HIPPO
-```
-
-import 可以将一个模块中的一个或多个 API 导入到当前作用域中，并分别绑定在一个变量上（在我们的例子里是 hello）。module 会将整个模块的 API 导入并绑定到一个变量上（在我们的例子里是 foo 和 bar）。export 会将当前模块的一个标识符（变量、函数）导出为公共 API。这些操作可以在模块定义中根据需要使用任意多次。
+关于 ES6 模块的使用方法可以参考这个：[Module 的语法](https://es6.ruanyifeng.com/#docs/module)。原书的例子太老了，已经不符合现在的语法，所以就不在这里写出来了。
 
 ### :blue_book: 小结
 
