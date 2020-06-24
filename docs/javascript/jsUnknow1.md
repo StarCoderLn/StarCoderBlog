@@ -1600,3 +1600,451 @@ ES6 中为模块增加了一级语法支持。但通过模块系统进行加载�
   （1）为创建内部作用域而调用了一个包装函数；
 
   （2）包装函数的返回值必须至少包括一个对内部函数的引用，这样就会创建涵盖整个包装函数内部作用域的闭包。
+
+## :books: 动态作用域
+
+:bell: **词法作用域是在写代码或者说定义时确定的，而动态作用域是在运行时确定的（this 也是！）。**
+
+:bell: **词法作用域关注函数在何处声明，而动态作用域关注函数从何处调用。因此动态作用域的作用域链是基于调用栈的，而不是代码中的作用域嵌套。**
+
+:bell: **JavaScript 并不具有动态作用域，它只有词法作用域。但是 this 机制某种程度上很像动态作用域**。
+
+比如下面这段代码：
+
+```js
+function foo() {
+  console.log(a);
+}
+function bar() {
+  var a = 3;
+  foo();
+}
+var a = 2;
+bar();
+```
+
+- 词法作用域让 foo() 中的 a 通过 RHS 引用到了全局作用域中的 a，因此会输出 2。
+
+- 但如果 JavaScript 具有动态作用域，理论上，就会输出 3。因为当 foo() 无法找到 a 的变量引用时，**会顺着调用栈在调用 foo() 的地方查找 a，而不是在嵌套的词法作用域链中向上查找**。由于 foo() 是在 bar() 中调用的，引擎会检查 bar() 的作用域，并在其中找到值为 3 的变量 a。
+
+## :books: 块作用域的替代方案
+
+从 ES3 发布以来，JavaScript 中就有了块作用域，而 with 和 catch 分句就是块作用域的两个小例子。
+
+ES6 中引入了 let 之后，就能更方便的创建块作用域。
+
+但如果我们想在 ES6 之前的环境中使用块作用域，怎么弄？
+
+看下面的代码：
+
+```js
+{
+  let a = 2;
+  console.log(a); // 2
+}
+console.log(a); // ReferenceError
+```
+
+这段代码在 ES6 中能够正常工作，但是在 ES6 之前的环境中如何实现相同的效果呢？答案是使用 catch。
+
+```js
+try {
+  throw 2;
+} catch (a) {
+  console.log(a); // 2 
+}
+console.log(a); // ReferenceError
+```
+
+但是使用 catch 的这种写法明显就很奇怪。
+
+在从 ES6 之前的环境向 ES6 过渡时，我们可以使用代码转换工具来对 ES6 代码进行处理，生成兼容 ES5 的代码。
+
+比如 google 的 [Traceur 转码器](https://github.com/google/traceur-compiler)，它会将上面的 ES6 代码转换成下面这样：
+
+```js
+{
+  try {
+    throw undefined;
+  } catch (a) {
+    a = 2;
+    console.log(a);
+  }
+}
+console.log(a);
+```
+
+## :books: this 词法
+
+```js
+var obj = { 
+  id: "awesome", 
+  cool: function coolFn() { 
+    console.log(this.id); 
+  }
+};
+var id = "not awesome";
+obj.cool(); // awesome
+setTimeout(obj.cool, 100); // not awesome
+```
+
+这段代码有问题，因为在 setTimeout 中 cool 函数丢失了同 this 之间的绑定。解决这个问题最常见的方法就是通过 var that = this; 提前把 this 保存下来。
+
+```js
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    var that = this;
+    if (that.count < 1) {
+      setTimeout(function timer(){
+        that.count++;
+        console.log("awesome?");
+      }, 100 );
+    }
+  }
+};
+obj.cool(); // awesome?
+```
+
+var that = this; 这种方案圆满解决了理解和正确使用 this 绑定的问题，它使用的工具正是词法作用域。
+
+ES6 中的箭头函数引入一个叫作 this 词法的行为：
+
+```js
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    if (this.count < 1) {
+      setTimeout(() => {
+        this.count++;
+        console.log("awesome?");
+      }, 100 );
+    }
+  }
+};
+obj.cool(); // awesome?
+```
+
+箭头函数在涉及 this 绑定时的行为和普通函数的行为完全不一致。它放弃了所有普通 this 绑定的规则，取而代之的是**用当前的词法作用域覆盖了 this 本来的值**。
+
+另一种解决该问题的方法是正确使用和包含 this 机制。
+
+```js
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    if (this.count < 1) {
+      setTimeout(function timer() {
+        this.count++;
+        console.log("more awesome");
+      }.bind(this), 100 ); // 使用 bind 函数将新函数 timer 的 this 指定为 bind 的第一个参数
+    }
+  }
+};
+obj.cool(); // more awesome
+```
+
+# 第二部分 this 和对象原型
+
+## :books: 关于 this
+
+this 关键字是 JavaScript 最复杂的机制之一。
+
+### :blue_book: 为什么要用 this
+
+先来看一段代码：
+
+```js
+function identify() {
+  return this.name.toUpperCase();
+}
+function speak() {
+  var greeting = 'Hello, I\'m ' + identify.call(this);
+  console.log(greeting);
+}
+
+var me = {
+  name: 'Kyle'
+};
+var you = {
+  name: 'Reader'
+}
+
+identify.call(me); // KYLE
+identify.call(you); // READER
+
+speak.call(me); // Hello, I'm KYLE
+speak.call(you); // Hello, I'm READER
+```
+
+这段代码可以在不同的上下文对象（me 和 you）中重复使用函数 identify() 和 speak()，不用针对每个对象编写不同版本的函数。
+
+如果不使用 this，那就需要给 identify() 和 speak() 显式传入一个上下文对象。
+
+```js
+function identify(context) {
+  return context.name.toUpperCase();
+}
+function speak(context) {
+  var greeting = 'Hello, I\'m ' + identify.call(this);
+  console.log(greeting);
+}
+identify(you); // READER
+speak(me); // Hello, I'm KYLE
+```
+
+:bell: 很明显，**this 提供了一种更优雅的方式来隐式“传递”一个对象引用，因此可以将 API 设计得更加简洁并且易于复用**。
+
+### :blue_book: 对 this 的误解
+
+:gem: **误解一：this 指向函数自身。**
+
+this 并不像我们所想的那样指向函数本身。
+
+先看下面的代码：
+
+```js
+function foo(num) {
+  console.log('foo:' + num);
+  // 记录 foo 被调用的次数
+  this.count++;
+}
+foo.count = 0;
+var i;
+for (i = 0; i < 10; i++) {
+  if (i > 5) {
+    foo(i);
+  }
+}
+// foo:6
+// foo:7
+// foo:8
+// foo:9
+console.log(foo.count); // 0
+```
+
+可以看到，console.log 语句产生了 4 条输出，证明 foo(..) 确实被调用了 4 次，但是 foo.count 仍然 是 0。显然从字面意思来理解 this 是错误的。
+
+执行 foo.count = 0 时，的确向函数对象 foo 添加了一个属性 count。但是函数内部代码 this.count 中的 this 并不是指向那个函数对象，所以虽然属性名相同，根对象却并不相同。
+
+其实，这段代码在无意间**创建了一个全局变量 count，它的值为 NaN**，每次增加的操作都是针对它的。
+
+:bell: **如果要从函数对象内部引用它自身，那只使用 this 是不够的。一般来说你需要通过一个指向函数对象的词法标识符（变量）来引用它**。
+
+思考下面两个函数：
+
+```js
+function foo() {
+  foo.count = 4; // foo 指向它自身
+}
+setTimeout(function() {
+  // 匿名（没有名字的）函数无法指向自身
+}, 10);
+```
+
+第一个函数被称为具名函数，在它内部可以使用 foo 来引用自身。但是在第二个例子中，传入 setTimeout(..) 的回调函数没有名称标识符（这种函数被称为匿名函数），因此无法从函数内部引用自身。
+
+针对上面代码的问题，常见的解决方法有以下几种：
+
+- 创建另一个带有 count 属性的对象。
+
+```js
+function foo(num) {
+  console.log('foo:' + num);
+  // 记录 foo 被调用的次数
+  data.count++;
+}
+var data = {
+  count: 0
+};
+var i;
+for (i = 0; i < 10; i++) {
+  if (i > 5) {
+    foo(i);
+  }
+}
+// foo:6
+// foo:7
+// foo:8
+// foo:9
+console.log(data.count); // 4
+```
+
+- 是使用 foo 标识符替代 this 来引用函数对象。
+
+```js
+function foo(num) {
+  console.log('foo:' + num);
+  // 记录 foo 被调用的次数
+  foo.count++;
+}
+foo.count = 0;
+var i;
+for (i = 0; i < 10; i++) {
+  if (i > 5) {
+    foo(i);
+  }
+}
+// foo:6
+// foo:7
+// foo:8
+// foo:9
+console.log(foo.count); // 4
+```
+
+- 强制 this 指向 foo 函数对象。
+
+```js
+function foo(num) {
+  console.log('foo:' + num);
+  // 记录 foo 被调用的次数
+  this.count++;
+}
+foo.count = 0;
+var i;
+for (i = 0; i < 10; i++) {
+  if (i > 5) {
+    // 使用 call(..) 可以确保 this 指向函数对象 foo 本身
+    foo.call(foo, i);
+  }
+}
+// foo:6
+// foo:7
+// foo:8
+// foo:9
+console.log(foo.count); // 4
+```
+
+前两种方法虽然能够解决问题，但是都回避了真正的问题——无法理解 this 的含义和工作原理，并采用熟悉的技术——词法作用域去解决。只有最后一种方法是真正解决了 this 的问题，没有回避它。
+
+:gem: **误解二：this 指向函数的作用域。**
+
+这个问题有点复杂，因为在某种情况下它是正确的，但是在其他情况下它却是错误的。
+
+:bell: 需要明确的是，**this 在任何情况下都不指向函数的词法作用域**。
+
+在 JavaScript 内部，作用域确实和对象类似，可见的标识符都是它的属性。但是**作用域“对象”无法通过 JavaScript 代码访问，它存在于 JavaScript 引擎内部**。
+
+比如下面的代码试图使用 this 来隐式引用函数的词法作用域：
+
+```js
+function foo() {
+  var a = 2;
+  this.bar();
+}
+function bar() {
+  console.log(this.a);
+}
+foo(); // undefined
+```
+
+这段代码中的错误不止一个。
+
+首先，这段代码试图通过 this.bar() 来引用 bar() 函数。这是绝对不可能成功的。调用 bar() 最自然的方法是省略前面的 this，直接使用词法引用标识符。
+
+此外，编写这段代码的开发者还试图使用 this 联通 foo() 和 bar() 的词法作用域，从而让 bar() 可以访问 foo() 作用域里的变量 a。这是不可能实现的，**你不能使用 this 来引用一个词法作用域内部的东西**。
+
+:bell: **每当你想要把 this 和词法作用域的查找混合使用时，一定要提醒自己，这是无法实现的**。
+
+### :blue_book: this 到底是什么
+
+当一个函数被调用时，会创建一个**活动记录**（有时候也称为**执行上下文**）。这个记录会包含函数在哪里被调用（调用栈）、函数的调用方法、传入的参数等信息。**this 就是记录的其中一个属性，会在函数执行的过程中用到**。
+
+:bell: **this 是在运行时进行绑定的，并不是在编写时绑定，它的上下文取决于函数调用时的各种条件。this 的绑定和函数声明的位置没有任何关系，只取决于函数的调用方式**。
+
+### :blue_book: 小结
+
+1. 学习 this 的第一步是明白 this 既不指向函数自身也不指向函数的词法作用域。
+
+2. this 实际上是在函数被调用时发生的绑定，它指向什么完全取决于函数在哪里被调用。
+
+## :books: this 全面解析
+
+### :blue_book: 调用位置
+
+在理解 this 的绑定过程之前，首先要理解调用位置：**调用位置就是函数在代码中被调用的位置（而不是声明的位置）**。只有仔细分析调用位置才能回答这个问题：这个 this 到底引用的是什么？
+
+通常来说，寻找调用位置就是寻找“函数被调用的位置”，但是做起来并没有这么简单，因为某些编程模式可能会隐藏真正的调用位置。
+
+:bell: **最重要的是要分析调用栈（就是为了到达当前执行位置所调用的所有函数）。我们关心的调用位置就在当前正在执行的函数的前一个调用中。**
+
+下面我们来看看到底什么是调用栈和调用位置：
+
+```js
+function baz() {
+  // 当前调用栈是：baz
+  // 因此，当前调用位置是全局作用域
+  console.log('baz');
+  bar(); // bar 的调用位置
+}
+function bar() {
+  // 当前调用栈是 baz -> bar
+  // 因此，当前调用位置在 baz 中
+  console.log('bar');
+  foo(); // foo 的调用位置
+}
+function foo() {
+  // 当前调用栈是 baz -> bar -> foo
+  // 因此，当前调用位置在 bar 中
+  console.log('foo');
+}
+baz(); // baz 的调用位置
+```
+
+注意我们是如何（从调用栈中）分析出真正的调用位置的，因为它决定了 this 的绑定。
+
+::: warning 注意
+我们可以把调用栈想象成一个函数调用链，就像我们在前面代码段的注释中所写的一样。但是这种方法非常麻烦并且容易出错。
+
+另一个查看调用栈的方法是使用浏览器的调试工具。在 foo 函数的第一行代码添加一个断点，或者直接在第一行代码之前插入一句 debugger; 语句。
+
+![jsunknow](../.vuepress/public/assets/image/javascript/jsunknow2.png 'jsunknow')
+
+如果想要分析 this 的绑定，使用开发者工具得到调用栈，然后找到栈中第二个元素，这就是真正的调用位置。
+:::
+
+### :blue_book: 绑定规则
+
+当我们找到调用规则之后，就可以判断需要应用下面4条规则中的哪一条。
+
+:gem: **1. 默认绑定**
+
+首先要介绍的是最常用的函数调用类型：**独立函数调用**。可以把这条规则看作是无法应用其他规则时的默认规则。
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var a = 2;
+foo(); // 2
+```
+
+在这段代码中，首先要注意的是，**声明在全局作用域中的变量（比如 var a = 2）就是全局对象的一个同名属性**。它们本质上就是同一个东西，并不是通过复制得到的，就像一个硬币的两面一样。
+
+接下来我们可以看到当调用 foo() 时，this.a 被解析成了全局变量 a。为什么？因为在本例中，函数调用时应用了 this 的默认绑定，因此 this 指向全局对象。
+
+那么我们怎么知道这里应用了默认绑定呢？可以通过分析调用位置来看看 foo() 是如何调用的。**在代码中，foo() 是直接使用不带任何修饰的函数引用进行调用的，因此只能使用默认绑定，无法应用其他规则。**
+
+**如果使用严格模式（strict mode），那么全局对象将无法使用默认绑定，因此 this 会绑定到 undefined：**
+
+```js
+function foo() {
+  'use strict';
+  console.log(this.a);
+}
+var a = 2;
+foo(); // Uncaught TypeError: Cannot read property 'a' of undefined
+```
+
+:bell: **注意，虽然 this 的绑定规则完全取决于调用位置，但是只有 foo() 运行在非 strict mode 下时，默认绑定才能绑定到全局对象；严格模式下与 foo() 的调用位置无关：**
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var a = 2;
+(function() {
+  'use strict';
+  foo(); // 2
+})();
+```
