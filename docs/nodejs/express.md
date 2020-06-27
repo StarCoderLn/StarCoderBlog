@@ -82,6 +82,8 @@ app.post('/', function (req, res) {
 
 **5. 使用 express.static 中间件设置静态文件**
 
+[利用 Express 托管静态文件](https://www.expressjs.com.cn/starter/static-files.html)
+
 ```js
 var express = require('express');
 var app = express();

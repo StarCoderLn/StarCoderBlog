@@ -349,7 +349,7 @@ new Promise(function(resolve) {
 })
 ```
 
-此时，此时 ‘async1 end’ 出现的位置变成了在 ‘peomise2’ 和 ‘promise3’ 之间了。
+此时 ‘async1 end’ 出现的位置变成在 ‘peomise2’ 和 ‘promise3’ 之间了。
 
 这是因为 **async2 里面返回了一个 thenable 对象，此时虽然它本身不是一个 promise 了，但是在 async1 内部 resolve 处理 thenable 时还是会包裹一层 promise**，所以它下面的代码就会比之前慢了一个位置输出。
 

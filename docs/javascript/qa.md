@@ -4,21 +4,25 @@ QA（Quality Assurance）是质量保证的意思。但实际上好像每家公�
 
 ## 测试核心概念
 
+![QA](../.vuepress/public/assets/image/javascript/qa1.png 'QA')
+
 **1. 单元测试**
 
-- 目的：单元测试能够让开发明确知道代码结果
+- 目的：单元测试能够让开发明确知道代码结果。
 
-- 原则：单一职责、接口抽象、层次分离
+- 原则：**单一职责**、**接口抽象**、**层次分离**。
 
-- 断言库：保证最小单元是否正常运行的检测方法
+- 断言库：保证最小单元是否正常运行的检测方法。
 
-- 测试风格：**测试驱动开发**（Test-Driven Development，`TDD`）、**行为驱动开发**（Behavior Driven Development，`BDD`）均是**敏捷开发**方法论。
+- 测试风格：
 
-  TDD 关注所有的功能是否被实现（每一个功能都必须有对应的测试用例），suite 配合 test 利用 assert('tobi' == user.name)；
+  **测试驱动开发**（Test-Driven Development，`TDD`）、**行为驱动开发**（Behavior Driven Development，`BDD`）均是**敏捷开发**方法论。
 
-  BDD 关注整体行为是否符合整体预期，编写的每一行代码都有目的提供一个全面的测试用例集。
+  **TDD 关注所有的功能是否被实现（每一个功能都必须有对应的测试用例）**，suite 配合 test 利用 assert('tobi' == user.name)。简单来说就是先写测试用例，再干活。
 
-- 单元测试框架
+  **BDD 关注整体行为是否符合整体预期，编写的每一行代码都有目的提供一个全面的测试用例集**。expect/should，describe 配合 it 利用自然语言 expect(1).toEqual(fn()) 执行结果。简单来说就是先干活再写测试用例，国内大部分公司都是采用这种方式。
+
+- **单元测试框架**
 
   [better-assert](https://github.com/tj/better-assert)（TDD 断言库，Github 276star 21fork）
 
@@ -30,9 +34,15 @@ QA（Quality Assurance）是质量保证的意思。但实际上好像每家公�
 
   [Jasmine.js](https://github.com/jasmine/jasmine)（BDD，Github 14808star 2.2kfork）
 
-  Node.js 本身集成 require('assert')
+  Node.js 本身集成 require('assert');
 
-- 单元测试运行流程
+  [Intern](https://github.com/theintern/intern) 更是一个大而全的单元测试框架。
+
+  [QUnit](https://github.com/qunitjs/qunit) 一个游离在 jQuery 左右的测试框架。
+
+  [Macaca](https://github.com/alibaba/macaca/blob/master/README.zh.md) 一套完整的自动化测试解决方案，国内神器，来自阿里巴巴。
+
+- **单元测试运行流程**
 
   （1）before 单个测试用例(it)开始前。
 
@@ -42,9 +52,9 @@ QA（Quality Assurance）是质量保证的意思。但实际上好像每家公�
   
   （4）以上专业术语叫 mock。
 
-![QA](../.vuepress/public/assets/image/javascript/qa.png 'QA')
+![QA](../.vuepress/public/assets/image/javascript/qa2.png 'QA')
 
-- 自动化单元测试
+- **自动化单元测试**
 
   karma 自动化 runner 集成 PhantomJS 无刷新
 
@@ -62,7 +72,7 @@ npm install karma-mocha --save-dev
 npm install karma-chai --save-dev
 ```
 
-- 报告和单测覆盖率检查
+- **报告和单测覆盖率检查**
 
 ```js
 npm install karma-coverage --save-dev
@@ -76,13 +86,13 @@ coverageReporter: {
 
 **2. 性能测试**
 
-- 基准测试
+- **基准测试**
 
   面向切面编程 AOP 无侵入式统计。
 
   Benchmark 基准测试方法，它并不是简单地统计执行多少次测试代码后对比时间，它对测试有着**严密的抽样过程**。执行多少次取决于采样到的数据能否完成统计。根据统计次数计算方差。
 
-- 压力测试
+- **压力测试**
 
   对网络接口做压力测试需要检查的几个常用指标有`吞吐率`、`响应时间`和`并发数`，这些指标反映了服务器并发处理能力。
 
@@ -94,7 +104,7 @@ coverageReporter: {
 
 **3. 安全测试**
 
-- 安全漏洞检查
+- **安全漏洞检查**
 
   XSS
 
@@ -104,7 +114,7 @@ coverageReporter: {
 
 **4. 功能测试**
 
-- 用户真实性检查
+- **用户真实性检查**
 
   selenium-webdriver
 
