@@ -2009,7 +2009,7 @@ baz(); // baz 的调用位置
 
 :gem: **1. 默认绑定**
 
-首先要介绍的是最常用的函数调用类型：**独立函数调用**。可以把这条规则看作是无法应用其他规则时的默认规则。
+首先要介绍的是最常用的函数调用类型：**独立函数调用**。这条规则是无法应用其他规则时的默认规则。
 
 ```js
 function foo() {
@@ -2051,3 +2051,588 @@ var a = 2;
 
 :gem: **2. 隐式绑定**
 
+先看下面的代码：
+
+```js
+function foo() {
+  console.log(this.a)
+}
+var obj = {
+  a: 2,
+  foo: foo
+}
+obj.foo(); // 2
+```
+
+在这段代码中，无论是直接在 obj 中定义 foo 还是先定义 foo 再添加为引用属性，这个函数严格来说都不属于 obj 对象。
+
+然而，调用位置会使用 obj 上下文来引用函数，因此可以说函数被调用时 obj 对象“拥有”或者“包含”它。
+
+:bell: **当函数引用有上下文对象时，隐式绑定规则会把函数调用中的 this 绑定到这个上下文对象**。因为调用 foo() 时 this 被绑定到 obj，因此 this.a 和 obj.a 是一样的。
+
+**对象属性引用链中只有最顶层或者说最后一层会影响调用位置**。比如：
+
+```js
+function foo() {
+  console.log(this.a)
+}
+var obj2 = {
+  a: 42,
+  foo: foo
+}
+var obj1 = {
+  a: 2,
+  obj2: obj2
+}
+obj1.obj2.foo(); // 42
+```
+
+**隐式丢失**
+
+一个最常见的 this 绑定问题就是**被隐式绑定的函数会丢失绑定对象**，也就是说**它会应用默认绑定，从而把 this 绑定到全局对象或者 undefined 上，取决于是否是严格模式**。
+
+比如：
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var obj = {
+  a: 2,
+  foo: foo
+}
+var bar = obj.foo;
+var a = 'oops, global'; // a 是全局对象的属性
+bar(); // oops, global
+```
+
+虽然 bar 是 obj.foo 的一个引用，但是实际上，它引用的是 foo 函数本身，因此此时的 bar() 其实是一个不带任何修饰的函数调用，因此应用了默认绑定。
+
+再比如：
+
+```js
+function foo() {
+  console.log(this.a);
+}
+function doFoo(fn) {
+  // fn 其实引用的是 foo
+  fn(); // 调用位置
+}
+var obj = {
+  a: 2,
+  foo: foo
+}
+var a = 'oops, global'; // a 是全局对象的属性
+doFoo(obj.foo); // oops, global
+```
+
+参数传递其实就是一种隐式赋值，因此我们传入函数时也会被隐式赋值，所以结果和上一个例子一样。
+
+如果把函数传入语言内置的函数而不是传入自己声明的函数，结果也是一样的，没有区别:
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var obj = {
+  a: 2,
+  foo: foo
+}
+var a = 'oops, global'; // a 是全局对象的属性
+setTimeout(obj.foo, 100); // oops, global
+```
+
+通过这些例子可以看出，回调函数丢失 this 绑定是非常常见的。除此之外，还有一种情况 this 的行为会出乎我们意料：调用回调函数的函数可能会修改 this。
+
+:gem: **3. 显示绑定**
+
+在分析隐式绑定时，我们必须在一个对象内部包含一个指向函数的属性，并通过这个属性间接引用函数，从而把 this 间接(隐式)绑定到这个对象上。
+
+那么如果我们不想在对象内部包含函数引用，而想在某个对象上强制调用函数，该怎么做呢?
+
+可以使用函数的 `call(...)` 和 `apply(...)` 来实现。
+
+这两个方法第一个参数是一个对象，它们会把这个对象绑定到 this，接着在调用函数时指定这个 this。
+
+:bell: **使用 [call](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/call) 和 [apply](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/apply) 方法可以直接指定 this 的绑定对象，这种方式就叫作显示绑定**。
+
+比如：
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var obj = {
+  a: 2
+}
+foo.call(obj); // 2
+```
+
+通过 foo.call(..)，我们可以在调用 foo 时强制把它的 this 绑定到 obj 上。
+
+如果你传入了一个原始值(字符串类型、布尔类型或者数字类型)来当作 this 的绑定对象，这个原始值会被转换成它的对象形式(也就是new String(..)、new Boolean(..)或者 new Number(..))。这通常被称为“**装箱**”。
+
+不过，显示绑定也无法解决刚刚提到的绑定丢失问题。
+
+**（1）硬绑定**
+
+这是显示绑定的一个变种，它可以解决绑定丢失的问题。
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var obj = {
+  a: 2
+}
+var bar = function() {
+  foo.call(obj)
+}
+
+bar(); // 2
+setTimeout(bar, 100); // 2
+
+// 硬绑定的 bar 不可能再修改它的 this
+bar.call(window); // 2
+```
+
+这段代码创建了函数 bar()，并在它的内部手动调用了 foo.call(obj)，因此强制把 foo 的 this 绑定到了 obj。无论之后如何调用函数 bar，它总会手动在 obj 上调用 foo。这种绑定是一种显式的强制绑定，因此我们称之为**硬绑定**。
+
+**硬绑定的应用场景**
+
+- 创建一个包裹函数，传入所有的参数并返回接收到的所有值。
+
+```js
+function foo(something) {
+  console.log(this.a, something);
+  return this.a + something;
+}
+var obj = {
+  a: 2
+}
+var bar = function() {
+  return foo.apply(obj, arguments);
+}
+var b = bar(3); // 2 3
+console.log(b); // 5
+```
+
+- 创建一个 i 可以重复使用的辅助函数。
+
+```js
+function foo(something) {
+  console.log(this.a, something);
+  return this.a + something;
+}
+function bind(fn, obj) {
+  return function() {
+    return fn.apply(obj, arguments);
+  }
+}
+var obj = {
+  a: 2
+}
+var bar = bind(foo, obj);
+var b = bar(3); // 2 3
+console.log(b); // 5
+```
+
+ES5 中提供的内置方法 Function.prototype.bind 就是一种硬绑定。用法如下：
+
+```js
+function foo(something) {
+  console.log(this.a, something);
+  return this.a + something;
+}
+var obj = {
+  a: 2
+}
+var bar = foo.bind(obj);
+var b = bar(3); // 2 3
+console.log(b); // 5
+```
+
+bind(..) 会返回一个硬编码的新函数，它会把参数设置为 this 的上下文并调用原始函数。
+
+**（2）API调用的“上下文”**
+
+第三方库的许多函数，以及 JavaScript 语言和宿主环境中许多新的内置函数，都提供了一个可选的参数，通常被称为“上下文”(context)，其作用和 bind(..) 一样，确保你的回调函数使用指定的 this。
+
+比如：
+
+```js
+function foo(el) {
+  console.log(el, this.id);
+}
+var obj = {
+  id: 'awesome'
+}
+const arr = [1, 2, 3];
+// 调用 foo(..) 时把 this 绑定到 obj
+arr.forEach(foo, obj); // 1 awesome 2 awesome 3 awesome
+```
+
+这些函数实际上就是通过 call(..) 或者 apply(..) 实现了显式绑定，这样可以少写一些代码。
+
+:gem: **4. new 绑定**
+
+在传统的面向类的语言中，“构造函数”是类中的一些特殊方法，使用 new 初始化类时会调用类中的构造函数。通常的形式是这样的:
+
+```js
+something = new MyClass(..);
+```
+JavaScript 也有一个 new 操作符，使用方法看起来也和那些面向类的语言一样，然而，JavaScript 中 new 的机制实际上和面向类的语言完全不同。
+
+**在 JavaScript 中，构造函数只是一些使用 new 操作符时被调用的函数。它们并不会属于某个类，也不会实例化一个类。实际上，它们甚至都不能说是一种特殊的函数类型，它们只是被 new 操作符调用的普通函数而已。**
+
+使用 new 来调用函数，或者说发生构造函数调用时，会自动执行下面的操作。
+
+（1）创建（或者说构造）一个全新的对象。
+
+（2）这个新对象会被执行原型连接。
+
+（3）这个新对象会绑定到函数调用的 this。
+
+（4）如果函数没有返回其他对象，那么 new 表达式中的函数调用会自动返回这个新对象。
+
+比如：
+
+```js
+function foo(a) {
+  this.a = a;
+}
+var bar = new foo(2);
+console.log(bar.a); // 2
+```
+
+使用 new 来调用 foo(..) 时，我们会构造一个新对象并把它绑定到 foo(..) 调用中的 this 上。
+
+### :blue_book: 绑定规则的优先级
+
+:gem: **隐式绑定和显示绑定比较。**
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var obj1 = {
+  a: 2,
+  foo: foo
+}
+var obj2 = {
+  a: 3,
+  foo: foo
+}
+
+obj1.foo(); // 2
+obj2.foo(); // 3
+
+obj1.foo.call(obj2); // 3
+obj2.foo.call(obj1); // 2
+```
+
+可以看到，显示绑定优先级更高。
+
+:gem: **new 绑定和隐式绑定比较。**
+
+```js
+function foo(something) {
+  this.a = something;
+}
+var obj1 = {
+  foo: foo
+};
+var obj2 = {};
+
+obj1.foo(2);
+console.log(obj1.a); // 2
+
+obj1.foo.call(obj2, 3);
+console.log(obj2.a); // 3
+
+var bar = new obj1.foo(4);
+console.log(obj1.a); // 2
+console.log(bar.a); // 4
+```
+
+可以看到，new 绑定优先级更高。
+
+:gem: **new 绑定和显示绑定比较。**
+
+new 和 call/apply 无法一起使用，因此无法通过 new foo.call(obj1) 来直接进行测试。但是我们可以使用硬绑定来测试它俩的优先级。
+
+Function.prototype.bind(..) 会创建一个新的包装函数，这个函数会忽略它当前的 this 绑定(无论绑定的对象是什么)，并把我们提供的对象绑定到 this 上。
+
+```js
+function foo(something) {
+  this.a = something;
+}
+
+var obj1 = {};
+
+var bar = foo.bind(obj1);
+bar(2);
+console.log(obj1.a); // 2
+
+var baz = new bar(3);
+console.log(obj1.a); // 2
+console.log(baz.a); // 3
+```
+
+在这段代码中，bar 被硬绑定到 obj1 上，但是 new bar(3) 并没有像我们预计的那样把 obj1.a 修改为 3。相反，new 修改了硬绑定(到 obj1 的)调用 bar(..) 中的 this。因为使用了 new 绑定，我们得到了一个名字为 baz 的新对象，并且 baz.a 的值是 3。
+
+为什么要在 new 中使用硬绑定函数呢？直接使用普通函数不是更简单吗？
+
+之所以要在 new 中使用硬绑定函数，主要目的是预先设置函数的一些参数，这样在使用 new 进行初始化时就可以只传入其余的参数。
+
+bind(..) 的功能之一就是可以把除了第一个参数(第一个参数用于绑定 this)之外的其他参数都传给下层的函数(这种技术称为“部分应用”，是“柯里化”的一种)。比如：
+
+```js
+function foo(p1, p2) {
+  this.val = p1 + p2;
+}
+var bar = foo.bind(null, 'p1');
+var baz = new bar('p2');
+console.log(baz.val); // p1p2
+```
+
+:gem: **总结**
+
+综上所述，可以按照下面的顺序来判断函数在某个调用位置应用的是哪条规则。
+
+**1. 函数是否在 new 中调用（new 绑定）？如果是的话，this 绑定的是新创建的对象。**
+
+```js
+var bar = new foo();
+```
+
+**2. 函数是否通过 call、apply（显示绑定）或者硬绑定调用？如果是的话，this 绑定的是指定的对象。**
+
+```js
+var bar = foo.call(obj2);
+```
+
+**3. 函数是否在某个上下文对象中调用（隐式绑定）？如果是的话，this 绑定的是那个上下文对象。**
+
+```js
+var bar = obj1.foo();
+```
+
+**4. 如果都不是的话，使用默认绑定。如果在严格模式下，就绑定到 undefined，否则绑定到全局对象。**
+
+```js
+var bar = foo();
+```
+
+### :blue_book: 绑定例外
+
+对于正常的函数调用来说，都是遵循4条绑定规则的。但是规则总有例外，在某些场景下 this 的绑定行为会出乎意料，你认为应当应用其他绑定规则时，实际上应用的可能是默认绑定规则。
+
+:gem: **1. 被忽略的 this**
+
+**如果你把 null 或者 undefined 作为 this 的绑定对象传入 call、apply 或者 bind，这些值在调用时会被忽略，实际应用的是默认绑定规则:**
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var a = 2;
+foo.call(null); // 2
+```
+
+什么情况下会传入 null 呢？
+
+一种非常常见的做法是**使用 apply(..) 来“展开”一个数组，并当作参数传入一个函数**。类似地，**bind(..) 可以对参数进行柯里化(预先设置一些参数)**，这种方法有时非常有用:
+
+```js
+function foo(a, b) {
+  console.log('a:' + a + ', b:' + b);
+}
+
+// 把数组展开成参数
+foo.apply(null, [2, 3]); // a:2, b:3
+
+// 使用 bind 进行柯里化
+var bar = foo.bind(null, 2);
+bar(3); // a:2, b:3
+```
+
+这两种方法都需要传入一个参数当作 this 的绑定对象。
+
+:bell: **如果函数并不关心 this 的话，你仍然需要传入一个占位值，这时 null 是一个不错的选择.**
+
+然而，总是使用 null 来忽略 this 绑定可能产生一些副作用。如果某个函数确实使用了 this(比如第三方库中的一个函数)，那默认绑定规则会把 this 绑定到全局对象(在浏览器中这个对象是 window)，这将导致不可预计的后果(比如修改全局对象)。
+
+:bell: **因此，一种更安全的做法是，传入一个空的非委托的对象，把 this 绑定到这个对象不会对程序产生任何副作用。**
+
+在书中，作者把这个对象命名为 `ø`，因为这是数学中表示空集合符号的小写形式。不过命名是随意的，可以用任何别的名称来替代它。
+
+:bell: **在 JavaScript 中创建一个空对象最简单的方法是 Object.create(null)。Object.create(null) 和 {} 很像，但是并不会创建 Object.prototype 这个委托，所以它比 {}“更空”。**
+
+```js
+function foo(a, b) {
+  console.log('a:' + a + ', b:' + b);
+}
+
+var ø = Object.create(null);
+
+foo.apply(ø, [2, 3]); // a:2, b:3
+
+var bar = foo.bind(ø, 2);
+bar(3); // a:2, b:3
+```
+
+使用变量名 ø 不仅让函数变得更加“安全”，而且可以提高代码的可读性，因为 ø 表示 “我希望 this 是空”，这比 null 的含义更清楚。
+
+:gem: **2. 间接引用**
+
+**另一个需要注意的是，有的时候我们可能(有意或者无意地)创建一个函数的“间接引用”，在这种情况下，调用这个函数会应用默认绑定规则。**
+
+间接引用最容易在赋值时发生:
+
+```js
+function foo() {
+  console.log(this.a);
+}
+var a = 2;
+var o = { 
+  a: 3,
+  foo: foo
+}
+var p = {
+  a:4
+}
+o.foo(); // 3
+(p.foo = o.foo)(); // 2
+```
+
+赋值表达式 p.foo = o.foo 的返回值是目标函数的引用，因此调用位置是 foo() 而不是 p.foo() 或者 o.foo()。所以会应用默认绑定。
+
+::: warning 注意
+对于默认绑定来说，**决定 this 绑定对象的并不是调用位置是否处于严格模式，而是函数体是否处于严格模式**。如果函数体处于严格模式，this 会被绑定到 undefined，否则 this 会被绑定到全局对象。
+:::
+
+:gem: **3. 软绑定**
+
+硬绑定这种方式可以把 this 强制绑定到指定的对象(除了使用 new 时)，防止函数调用应用默认绑定规则。问题在于，硬绑定会大大降低函数的灵活性，使用硬绑定之后就无法使用隐式绑定或者显式绑定来修改 this。
+
+如果可以给默认绑定指定一个全局对象和 undefined 以外的值，那就可以实现和硬绑定相同的效果，同时保留隐式绑定或者显式绑定修改 this 的能力。
+
+软绑定可以做到这点，下面是它的方法：
+
+```js
+if (!Function.prototype.softBind) {
+  Function.prototype.softBind = function(obj) {
+    var fn = this;
+    // 捕获所有的 curried 参数
+    var curried = [].slice.call(arguments, 1);
+    var bound = function() {
+      return fn.apply(
+        (!this || this === (window || global)) ? obj : this
+        curried.concat.apply(curried, arguments)
+      )
+    }
+    bound.prototype = Object.create(fn.prototypr);
+    return bound;
+  }
+}
+```
+
+除了软绑定之外，softBind(..) 的其他原理和 ES5 内置的 bind(..) 类似。
+
+它会对指定的函数进行封装，首先检查调用时的 this，如果 this 绑定到全局对象或者 undefined，那就把指定的默认对象 obj 绑定到 this，否则不会修改 this。此外，这段代码还支持可选的柯里化.
+
+下面使用下 softBind：
+
+```js
+function foo() {
+  console.log('name:' + this.name);
+}
+var obj = { name: 'obj' }, obj2 = { name: 'obj2' }, obj3 = { name: 'obj3' };
+var fooOBJ = foo.softBind(obj);
+
+fooOBJ(); // name:obj
+
+obj2.foo = foo.softBind(obj);
+obj2.foo(); // name:obj2
+
+fooOBJ.call( obj3 ); // name:obj3
+
+setTimeout( obj2.foo, 10 ); // name:obj   应用了软绑定
+```
+
+可以看到，软绑定版本的 foo() 可以手动将 this 绑定到 obj2 或者 obj3 上，但如果应用默认绑定，则会将 this 绑定到 obj。
+
+### :blue_book: this 词法
+
+**ES6 的箭头函数不使用 this 的4种标准规则，而是根据外层(函数或者全局)作用域来决定 this。**
+
+先来看看箭头函数的词法作用域：
+
+```js
+function foo() {
+  // 返回一个箭头函数 
+  return (a) => {
+    //this 继承自 foo()
+    console.log(this.a); 
+  };
+}
+var obj1 = { 
+  a: 2
+};
+var obj2 = {
+  a: 3
+};
+var bar = foo.call(obj1);
+bar.call(obj2) ; // 2, 不是 3 !
+```
+
+foo() 内部创建的箭头函数会捕获调用时 foo() 的 this。由于 foo() 的 this 绑定到 obj1， bar(引用箭头函数)的 this 也会绑定到 obj1，箭头函数的绑定无法被修改。(new 也不行!)
+
+箭头函数最常用于回调函数中，例如事件处理器或者定时器:
+
+```js
+function foo() { 
+  setTimeout(() => {
+    // 这里的 this 在词法上继承自 foo()
+    console.log(this.a); 
+  },100);
+}
+var obj = { 
+  a: 2
+};
+foo.call(obj); // 2
+```
+
+箭头函数可以像 bind(..) 一样确保函数的 this 被绑定到指定对象，此外，其重要性还体现在它用更常见的词法作用域取代了传统的 this 机制。
+
+实际上，在 ES6 之前我们就已经在使用一种几乎和箭头函数完全一样的模式。
+
+```js
+function foo() {
+  var that = this;
+  setTimeout(function() {
+    console.log(that.a); 
+  }, 100);
+}
+var obj = { 
+  a: 2
+};
+foo.call(obj); // 2
+```
+
+### :blue_book: 小结
+
+1. 如果要判断一个运行中函数的 this 绑定，就需要找到这个函数的直接调用位置。找到之后就可以顺序应用下面这四条规则来判断 this 的绑定对象。
+
+  （1） 由new调用?绑定到新创建的对象。
+
+  （2） 由call或者apply(或者bind)调用?绑定到指定的对象。
+
+  （3） 由上下文对象调用?绑定到那个上下文对象。
+
+  （4） 默认:在严格模式下绑定到undefined，否则绑定到全局对象。
+
+2. 有些调用可能在无意中使用默认绑定规则。如果想“更安全”地忽略 this 绑定，你可以使用一个 DMZ 对象，比如 ø = Object.create(null)，以保护全局对象。
+
+3. ES6 中的箭头函数并不会使用4条标准的绑定规则，而是根据当前的词法作用域来决定 this，具体来说，箭头函数会继承外层函数调用的 this 绑定(无论 this 绑定到什么)。这其实和 ES6 之前代码中的 that = this 机制一样。
