@@ -2305,7 +2305,7 @@ var bar = new foo(2);
 console.log(bar.a); // 2
 ```
 
-使用 new 来调用 foo(..) 时，我们会构造一个新对象并把它绑定到 foo(..) 调用中的 this 上。
+**使用 new 来调用 foo(..) 时，我们会构造一个新对象并把它绑定到 foo(..) 调用中的 this 上。**
 
 ### :blue_book: 绑定规则的优先级
 
@@ -2361,7 +2361,7 @@ console.log(bar.a); // 4
 
 new 和 call/apply 无法一起使用，因此无法通过 new foo.call(obj1) 来直接进行测试。但是我们可以使用硬绑定来测试它俩的优先级。
 
-Function.prototype.bind(..) 会创建一个新的包装函数，这个函数会忽略它当前的 this 绑定(无论绑定的对象是什么)，并把我们提供的对象绑定到 this 上。
+**Function.prototype.bind(..) 会创建一个新的包装函数，这个函数会忽略它当前的 this 绑定(无论绑定的对象是什么)，并把我们提供的对象绑定到 this 上。**
 
 ```js
 function foo(something) {
@@ -2528,11 +2528,11 @@ if (!Function.prototype.softBind) {
     var curried = [].slice.call(arguments, 1);
     var bound = function() {
       return fn.apply(
-        (!this || this === (window || global)) ? obj : this
+        (!this || this === (window || global)) ? obj : this,
         curried.concat.apply(curried, arguments)
       )
     }
-    bound.prototype = Object.create(fn.prototypr);
+    bound.prototype = Object.create(fn.prototype);
     return bound;
   }
 }
@@ -2636,3 +2636,151 @@ foo.call(obj); // 2
 2. 有些调用可能在无意中使用默认绑定规则。如果想“更安全”地忽略 this 绑定，你可以使用一个 DMZ 对象，比如 ø = Object.create(null)，以保护全局对象。
 
 3. ES6 中的箭头函数并不会使用4条标准的绑定规则，而是根据当前的词法作用域来决定 this，具体来说，箭头函数会继承外层函数调用的 this 绑定(无论 this 绑定到什么)。这其实和 ES6 之前代码中的 that = this 机制一样。
+
+## :books: 对象
+
+### :blue_book: 语法
+
+对象可以通过两种形式定义：**声明（文字）形式**和**构造形式**。
+
+声明（文字）形式：
+
+```js
+var myObj = {
+  key: value
+  // ...
+}
+```
+
+构造形式：
+
+```js
+var myObj = new Object();
+myObj.key = value;
+```
+
+**构造形式和文字形式生成的对象是一样的。唯一的区别是，在文字声明中你可以添加多个键/值对，但是在构造形式中你必须逐个添加属性**。
+
+### :blue_book: 类型
+
+[JavaScript 数据类型和数据结构](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Data_structures)
+
+目前，最新的 ECMAScript 标准定义了 8 种数据类型，其中基本数据类型共有7种：
+
+- **Boolean**
+
+- **String**
+
+- **Number**
+
+- **Null**
+
+- **Undefined**
+
+- **Symbol**
+
+- **BigInt**
+
+此外，还有一种类型是对象 **Object**。数组和函数本质上都是对象的一种类型。
+
+null 有时会被当作一种对象类型，但是这其实只是语言本身的一个 bug。null 本身不是对象，它是基本类型。
+
+```js
+typeof null // object
+```
+
+有一种常见的说法是“JavaScript 中万物皆是对象”，这显然是错误的。
+
+### :blue_book: 内置对象
+
+1. [JavaScript 标准内置对象](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects)。
+
+2. [typeof](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/typeof) 操作符返回一个字符串，表示未经计算的操作数的类型。
+
+3. [instanceof](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/instanceof) 运算符用于检测构造函数的 prototype 属性是否出现在某个实例对象的原型链上。
+
+4. 看下面的代码：
+
+```js
+var strPrimitive = 'I am a string';
+console.log(strPrimitive.length); // 13
+console.log(strPrimitive.charAt(3)); // m
+```
+
+原始值 "I am a string" 并不是一个对象，它只是一个字面量，并且是一个不可变的值。如果要在这个字面量上执行一些操作，比如获取长度、访问其中某个字符等，那需要将其转换为 String 对象。**引擎会自动把字面量转换成 String 对象**，所以可以访问属性和方法。同样的，**数值字面量和布尔字面量也会自动转换成相应的对象**。
+
+**null 和 undefined 没有对应的构造形式，它们只有文字形式**。相反，**Date 只有构造，没有文字形式**。
+
+**对于 Object、Array、Function 和 RegExp（正则表达式）来说，无论使用文字形式还是构造形式，它们都是对象，不是字面量**。
+
+Error 对象很少在代码中显式创建，**一般是在抛出异常时被自动创建**。也可以使用 new Error(..) 这种构造形式来创建，不过一般来说用不着。
+
+### :blue_book: 内容
+
+对象的内容是由一些存储在特定命名位置的（任意类型的）值组成的，我们称之为属性。
+
+::: warning 注意
+在引擎内部，这些值的存储方式是多种多样的，一般并不会存在对象容器内部。**存储在对象容器内部的是这些属性的名称**，它们就像指针（从技术角度来说就是引用）一样，指向这些值真正的存储位置。
+:::
+
+访问对象属性的方法有两种：`.` 操作符和 `[]` 操作符。
+
+```js
+var myObject = {
+  a: 2
+};
+myObject.a; // 2
+myObject['a']; // 2
+```
+
+.a 语法通常被称为“ **属性访问** ”，['a'] 语法通常被称为“ **键访问** ”。
+
+这两种语法的主要区别在于， **. 操作符要求属性名满足标识符的命名规范，而 ['..'] 语法可以接受任意 UTF-8/Unicode 字符串作为属性名**。举例来说，如果要引用名称为 "Super- Fun!" 的属性，那就必须使用 ['Super-Fun!'] 语法访问，因为 Super-Fun! 并不是一个有效的标识符属性名。
+
+此外，由于 ['..'] 语法使用字符串来访问属性，所以可以在程序中构造这个字符串，比如：
+
+```js
+var myObject = {
+  a: 2
+};
+var idx;
+if (wantA) {
+  idx = 'a';
+}
+// 之后
+console.log(myObject[idx]); // 2
+```
+
+**在对象中，属性名永远都是字符串。**
+
+如果你使用 string（字面量）以外的其他值作为属性名，那它首先会被转换为一个字符串。即使是数字也不例外，虽然在数组下标中使用的的确是数字，但是在对象属性名中数字会被转换成字符串，所以当心不要搞混对象和数组中 数字的用法：
+
+```js
+var myObject = {};
+
+myObject[true] = 'foo';
+myObject[3] = 'bar';
+myObject[myObject] = 'baz';
+
+myObject['true']; // foo
+myObject['3']; // bar
+myObject['[object Object]']; // baz
+```
+
+:gem: **1. 可计算属性名**
+
+ES6 增加了可计算属性名，可以在文字形式中使用 [] 包裹一个表达式来当作属性名：
+
+```js
+var prefix = 'foo';
+
+var myObject = {
+  [prefix + 'bar']: 'hello',
+  [prefix + 'baz']: 'world'
+}
+
+myObject['foobar']; // hello
+myObject['foobaz']; // world
+```
+
+可计算属性名最常用的场景可能是 ES6 的符号（Symbol）。
