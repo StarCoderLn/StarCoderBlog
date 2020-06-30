@@ -147,7 +147,7 @@ coverageReporter: {
 - 搭配自动化管理工具完善自动化测试 gtunt-jslint、grunt-jshint。
 
 
-## 自动化测试实战演练
+## 自动化测试实战
 
 1. 一般测试用例文件都是以 .test.js、.spec.js 后缀命名的，也有的直接写成 indexSpec.js。并且测试用例文件和它对应的 js 文件名字也是一一对应的，比如 index.spec.js 就是 index.js 这个文件的测试用例文件。
 
@@ -407,3 +407,297 @@ backstop init
 ```
 
 ![karma](../.vuepress/public/assets/image/javascript/karma12.png 'karma')
+
+（4）把 backstop.json 文件中的 id 和 scenarios 对象中的 url 改成腾讯地图：
+
+```json
+"id": "qq"
+
+"scenarios": [
+  {
+    "url": "https://map.qq.com/m/"
+  }
+]
+```
+
+（5）puppeteer
+
+这是当下最新的无头浏览器，生态也比较广。[puppeteer github](https://github.com/puppeteer/puppeteer)
+
+puppet 文件夹下的东西就是用来操作这个的。puppet 也是一个库，[puppet npm](https://www.npmjs.com/package/puppet)、[puppet github](https://github.com/puppetlabs/puppet)
+
+![karma](../.vuepress/public/assets/image/javascript/karma13.png 'karma')
+
+
+（6）运行以下命令：
+
+```js
+backstop test
+```
+
+执行完成后会自动在浏览器中弹出以下页面：
+
+![karma](../.vuepress/public/assets/image/javascript/karma14.png 'karma')
+
+这个时候可以发现 backstop_data 文件夹下多出了两个文件夹。
+
+![karma](../.vuepress/public/assets/image/javascript/karma15.png 'karma')
+
+其中，bitmaps_test 文件夹存放的就是你的页面，页面的尺寸就是跟 backstop.json 里面设置的尺寸一样的。
+
+![karma](../.vuepress/public/assets/image/javascript/karma16.png 'karma')
+
+而 html_report 文件夹存放的是生成的一些报表。
+
+（7）刚刚执行命令的时候还会发现报错了，说没有找到图片。
+
+![karma](../.vuepress/public/assets/image/javascript/karma17.png 'karma')
+
+没找到是因为这里的路径没找到。
+
+![karma](../.vuepress/public/assets/image/javascript/karma18.png 'karma')
+
+（8）直接在 backstop_data 文件夹中新建一个 bitmaps_reference 文件夹。然后让 UI 把新的图放这个文件夹里边。同时删掉 bitmaps_test 文件夹。
+
+![karma](../.vuepress/public/assets/image/javascript/karma19.png 'karma')
+
+（9）重新执行 backstop test 命令，就能看到自己的页面跟 UI 设计的图哪些地方不一样了。
+
+![karma](../.vuepress/public/assets/image/javascript/karma20.png 'karma')
+
+![karma](../.vuepress/public/assets/image/javascript/karma21.png 'karma')
+
+（10）由于生成的报表很重要，接下来我们把生成报表的路径改一下。然后重新执行命令就可以了，就会在 docs 生成一个 html_report 目录。
+
+```json
+"paths": {
+  "bitmaps_reference": "backstop_data/bitmaps_reference",
+  "bitmaps_test": "backstop_data/bitmaps_test",
+  "engine_scripts": "backstop_data/engine_scripts",
+  "html_report": "docs/html_report", // 修改报表生成位置
+  "ci_report": "backstop_data/ci_report"
+}
+```
+
+（11）先把上面的基本流程练熟了之后，接下来就是要去熟悉操作 puppet 里面的东西了。
+
+## e2e 测试实战
+
+1. 在 tests 目录下新建 e2e 文件夹。
+
+2. e2e 测试最流行的框架是 [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver)，同时它也是学习自动化测试最关键的一个库。
+
+（1）安装这个库
+
+```
+npm install selenium-webdriver
+```
+
+（2）安装驱动，安装推荐的任意一个都可以
+
+![selenium-webdriver](../.vuepress/public/assets/image/javascript/selenium-webdriver1.png 'selenium-webdriver')
+
+（3）这里选择安装 FireFox 的驱动。
+
+![selenium-webdriver](../.vuepress/public/assets/image/javascript/selenium-webdriver2.png 'selenium-webdriver')
+
+（4）下载完成后解压缩，然后把 geckodriver 放到项目的根目录下。
+
+![selenium-webdriver](../.vuepress/public/assets/image/javascript/selenium-webdriver3.png 'selenium-webdriver')
+
+（5）接着在 e2e 目录下新建一个 baidu.spec.js 文件，然后到 selenium-webdriver 的 npm 上复制下面这段代码到这个文件中，地址改成百度的地址。
+
+```js
+const {Builder, By, Key, until} = require('selenium-webdriver');
+ 
+(async function example() {
+  let driver = await new Builder().forBrowser('firefox').build();
+  try {
+    await driver.get('https://www.baidu.com/');
+    await driver.findElement(By.name('wd')).sendKeys('深圳大学', Key.RETURN);
+    await driver.wait(until.titleIs('深圳大学_百度搜索'), 1000);
+  } finally {
+    await driver.quit();
+  }
+})();
+```
+
+（6）接着执行以下命令
+
+```
+node ./tests/e2e/baidu.spec.js
+```
+
+但是出现了以下问题。
+
+![selenium-webdriver](../.vuepress/public/assets/image/javascript/selenium-webdriver4.png 'selenium-webdriver')
+
+想了一下，猜测可能是因为我没有安装火狐浏览器，于是下载安装了一个。然后重新运行命令，就发现成功了。命令执行完成后会自动打开火狐浏览器，百度搜索深圳大学，然后再关闭，说明端到端测试完成了。这就是最简单的 e2e 测试。
+
+3. [Nightwatch.js](https://nightwatchjs.org/) 是另一个端到端测试框架，写起来很爽，但是配置起来太复杂、太难了。
+
+4. [Cypress](https://www.cypress.io/) 也是一个端到端测试框架，这个就以配置简单闻名，而且有中文文档。
+
+5. [Rize.js](https://rize.js.org/zh-CN/#%E7%89%B9%E6%80%A7) 是一个提供顶层的、流畅并且可以链式调用的 API 的库，它能让您简单地使用 puppeteer。它的 api 很少，但是却够用。puppeteer 本身是基于 Chrome 的，它的不足就是只能测 Chrome，不能测其他浏览器。
+
+（1）执行以下命令安装 puppeteer 和 rize。
+
+```
+npm install --save-dev puppeteer rize
+```
+
+npm 安装太慢了，最后使用 cnpm 安装。
+
+```
+cnpm install --save-dev puppeteer rize
+```
+
+（2）安装完成后，在 e2e 文件夹下新建 github.spec.js 文件，并写入以下代码。
+
+```js
+const Rize = require('rize')
+const rize = new Rize()
+
+rize
+  .goto('https://github.com/')
+  .type('input.header-search-input', 'node')
+  .press('Enter')
+  .waitForNavigation()
+  .assertSee('Node.js')
+  .end()  // 别忘了调用 `end` 方法来退出浏览器！
+```
+
+（3）执行以下命令：
+
+```
+node ./tests/e2e/github.spec.js
+```
+
+执行命令后需要等待一下，因为是无头浏览器，所以什么东西也看不到，只能等。如果执行成功，就会自动退出命令，如果执行不成功，就会报错。
+
+6. [Jest](https://jestjs.io/zh-Hans/) 是比较全面的一个测试框架，什么都能做，还是希望能够多去使用下，因为后面很多项目实战都会用到。如果项目是 react，那测试框架就选这个了。如果是 vue，就选 cypress。唯一的弱点就是不适合做异步。
+
+7. mocha + chai 和 Jest 是 vue 项目推荐的两套单元测试框架。Cypress 和 Nightwatch 是 vue 项目推荐的两套端到端测试框架。
+
+## 接口测试实战
+
+[mocha](https://mochajs.cn/) 主要用来做接口测试，因为它适合做异步测试。下面就来使用下它。
+
+1. 在 tests 目录下新建 service 文件夹，并建一个 app.js 文件。从 [koa](https://koa.bootcss.com/) 官网上复制一段代码放到文件中。
+
+```js
+const Koa = require('koa');
+const app = new Koa();
+
+app.use(async ctx => {
+  ctx.body = {
+    data: '深圳大学'
+  };
+});
+
+app.listen(3000, () => {
+  console.log('服务启动成功');
+});
+```
+
+2. 接着安装 koa
+
+```
+npm install koa --save-dev
+```
+
+3. 安装好之后执行
+
+```
+node ./tests/service/app.js
+```
+
+然后浏览器中访问 localhost:3000 就能看到接口返回的 json。
+
+4. 在 service 目录下再建一个 app.spec.js 文件。
+
+```js
+const superagent = require('supertest');
+const app = require('./app');
+
+function request() {
+    return superagent(app.listen());
+}
+
+describe('NodeUii 自动化脚本', function() {
+    it('获取后台接口数据', function(done) {
+        request()
+            .get('/')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+                if (err) {
+                    done(new Error('请求出错！'));
+                } else {
+                    if (res.body.data === '深圳大学') {
+                        done();
+                    } else {
+                        done(new Error('接口数据出错！'));
+                    }
+                }
+            })
+    })
+    it('404容错脚本', function(done) {
+        request().get('/user?').expect(404, done);
+    })
+})
+```
+
+然后 app.js 中要加一句 module.exports = app;，同时还要安装 superagent、mocha 和 mochawesome：
+
+```
+npm install superagent mocha mochawesome --save-dev
+```
+
+5. 接着在根目录下创建一个 mochaRunner.js 文件。
+
+```js
+const Mocha = require('mocha');
+
+const mocha = new Mocha({
+    reporter: 'mochawesome',
+    reporterOptions: {
+        reportDir: 'docs/mochawesome-report'
+    }
+});
+
+mocha.addFile('./tests/service/app.spec.js');
+
+mocha.run(function() {
+    process.exit(0);
+})
+```
+
+此时发现不应该安装 superagent，而是要安装 supertest：
+
+```
+npm install supertest --save-dev
+```
+
+6. 接着运行以下命令
+
+```
+node mochaRunner.js
+```
+
+但是此时报错了
+
+![mocha](../.vuepress/public/assets/image/javascript/mocha1.png 'mocha')
+
+检查发现是 res.body.data 而不是 res.body。重新运行就可以了。
+
+![mocha](../.vuepress/public/assets/image/javascript/mocha2.png 'mocha')
+
+可以看到有1个用例成功了，1个用例失败了，此时在 docs 目录下同样能看到生成的文件。
+
+![mocha](../.vuepress/public/assets/image/javascript/mocha3.png 'mocha')
+
+打开 mochawesome.html 文件，就可以看到性能测试报告了。
+
+![mocha](../.vuepress/public/assets/image/javascript/mocha4.png 'mocha')
