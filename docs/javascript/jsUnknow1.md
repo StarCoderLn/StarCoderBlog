@@ -2784,3 +2784,175 @@ myObject['foobaz']; // world
 ```
 
 可计算属性名最常用的场景可能是 ES6 的符号（Symbol）。
+
+:gem: **2. 属性与方法**
+
+如果访问的对象属性是一个函数，那么函数很容易被认为是属于某个对象的。在其他语言中，属于对象（也被称为“类”）的函数通常被称为“方法”，因此经常会把“属性访问”说成是“方法访问”。
+
+**但是在 JavaScript 中，函数永远不会“属于”一个对象。**
+
+无论返回值是什么类型，每次访问对象的属性就是属性访问。如果属性访问返回的是一个函数，那它也并不是一个“方法”。属性访问返回的函数和其他函数没有任何区别，除了可能会发生隐式绑定之外。
+
+比如：
+
+```js
+function foo() {
+  console.log('foo');
+}
+var someFoo = foo; // 对 foo 的变量引用
+
+var myObject = {
+  someFoo: foo
+};
+
+foo; // ƒ foo() { console.log('foo'); }
+someFoo; // ƒ foo() { console.log('foo'); }
+myObject.someFoo; // ƒ foo() { console.log('foo'); }
+```
+
+someFoo 和 myObject.someFoo 只是对于同一个函数的不同引用，并不能说明这个函数是特别的或者“属于”某个对象。如果 foo() 定义时在内部有一个 this 引用，那这两个函数引用的唯一区别就是 myObject.someFoo 中的 this 会被隐式绑定到一个对象。无论哪种引用形式都不能称之为“方法”。
+
+即使你在对象的文字形式中声明一个函数表达式，这个函数也不会“属于”这个对象——它们只是对于相同函数对象的多个引用。
+
+```js
+var myObject = {
+  foo: function() {
+    console.log('foo');
+  }
+}
+var someFoo = myObject.foo;
+
+someFoo; // ƒ foo() { console.log('foo'); }
+myObject.foo; // ƒ foo() { console.log('foo'); }
+```
+
+所以，最保险的说法可能是，“函数”和“方法”在 JavaScript 中是可以互换的。
+
+:gem: **3. 数组**
+
+数组也是对象，所以虽然每个下标都是整数，但仍然可以给数组添加属性。
+
+```js
+var myArray = ['foo', 42, 'bar'];
+myArray.baz = 'baz';
+myArray.length; // 3
+myArray.baz; // baz
+```
+
+可以看到，**虽然添加了命名属性（无论是通过 . 语法还是 [] 语法），数组的 length 值并未发生变化。**
+
+:bell: **如果试图向数组添加一个属性，但是属性名“看起来”像一个数字，那它会变成一个数值下标（因此会修改数组的内容而不是添加一个属性）。**
+
+```js
+var myArray = ['foo', 42, 'bar'];
+myArray['3'] = 'baz';
+myArray.length; // 4
+myArray[3]; // baz
+```
+
+:gem: **4. 复制对象**
+
+（1）复制对象分为浅拷贝和深拷贝。
+
+<!-- - 如果对象的属性值是基本数据类型的话，那么不管是浅拷贝还是深拷贝，新旧对象的属性值都是互相独立的，互不影响。因为基本数据类型的变量名和值都存在栈内存中，拷贝的时候会在栈内存中开辟一块新的内存来存放新对象的属性值。 -->
+
+- 对于一个基本数据类型的数据来说，它的变量名和值都是存在栈内存中的。如果是浅拷贝，新旧对象会相互影响，如果是深拷贝，新旧对象互不影响。
+
+- 对于一个引用数据类型的数据来说，栈内存中存储的是指向堆内存中的值的地址，即变量名，堆内存中存储的才是真正的值。如果对象的属性值是引用数据类型的话，浅拷贝只会复制旧对象的属性的引用地址给新对象，因此新旧对象的同个属性实际上指向的是栈中同一个地址，当改变其中一个时，堆中存储的值自然也会受到影响。而深拷贝除了会复制引用地址之外，还会在堆内存中开辟一块新的内存用来存放新对象的属性值，所以新旧对象是相互独立的，互不影响。
+
+比如：
+
+```js
+// 浅拷贝
+var obj = {
+  a: 1,
+  b: {
+    c: 1
+  }
+}
+var newObj = obj
+
+newObj.a = 2
+newObj.b.c = 3
+
+console.log(obj.a) // 2
+console.log(newObj.a) // 2
+
+console.log(obj.b.c) // 3
+console.log(newObj.b.c) // 3
+```
+
+```js
+// 深拷贝
+var obj = {
+  a: 1,
+  b: {
+    c: 1
+  }
+}
+var newObj = JSON.parse(JSON.stringify(obj))
+
+newObj.a = 2
+newObj.b.c = 3
+
+console.log(obj.a) // 1
+console.log(newObj.a) // 2
+
+console.log(obj.b.c) // 1
+console.log(newObj.b.c) // 3
+```
+
+（2）根据以上原理，区分两者最简单的方法就是：
+
+**假设 B 复制了 A，当修改 B 时，看 A 是否会发生变化，如果 A 也跟着变了，说明是浅拷贝；如果 A 没变，说明是深拷贝。**
+
+（3）实现浅拷贝的方法
+
+- 直接使用 `=` 赋值。
+
+- 使用 ES6 的 [Object.assign()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/assign) 方法。用于将所有可枚举属性的值从一个或多个源对象复制到目标对象。
+
+  但是这个方法我发现一点神奇的地方：
+
+  ```js
+  var obj = {
+    a: 1
+  }
+
+  var newObj = Object.assign(obj)
+  newObj.a = 2
+  
+  console.log(obj.a) // 2
+  console.log(newObj.a) // 2
+  ```
+
+  ```js
+  var obj = {
+    a: 1
+  }
+
+  var newObj = Object.assign({}, obj)
+  newObj.a = 2
+  
+  console.log(obj.a) // 1
+  console.log(newObj.a) // 2
+  ```
+
+（4）实现深拷贝的方法
+
+- 最常见的实现深拷贝的方法是通过序列化反序列化的方式。
+
+```js
+var newObj = JSON.parse(JSON.stringify(obj));
+```
+
+但是这种方式有一些坑，限制比较多，可参照：[关于 JSON.parse(JSON.stringify(obj)) 实现深拷贝的一些坑](https://segmentfault.com/a/1190000020297508)。
+
+- 使用 jQuery 的 extend 方法。
+
+```js
+var arr = [1,2,3,4];
+var newArr = $.extend(true, [], arr); // true为深拷贝，false为浅拷贝
+```
+
+- 使用 lodash 的 [_.cloneDeep()](https://www.lodashjs.com/docs/lodash.cloneDeep) 方法。
