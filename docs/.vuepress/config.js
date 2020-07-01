@@ -85,7 +85,8 @@ module.exports = {
         children: [
           { title: 'Node.js 入门', path: '/nodejs/nodejsStart' },
           { title: 'Node.js 基本使用', path: '/nodejs/nodejsApi' },
-          { title: 'Node.js Express 框架', path: '/nodejs/express' }
+          { title: 'Node.js Express 框架', path: '/nodejs/express' },
+          { title: 'Node.js Koa 框架', path: '/nodejs/koa' }
         ]
       },
       {
