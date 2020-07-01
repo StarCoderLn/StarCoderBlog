@@ -2938,21 +2938,147 @@ console.log(newObj.b.c) // 3
   console.log(newObj.a) // 2
   ```
 
+- 使用 for ... in 只循环第一层
+
+  ```js
+  function shallowCopy(obj1) {
+    var obj2 = Array.isArray(obj1) ? [] : {};
+    for (let i in obj1) {
+      obj2[i] = obj1[i];
+    }
+    return obj2;
+  }
+  var obj1 = {
+    a: 1,
+    b: 2,
+    c: {
+      d: 3
+    }
+  }
+  var obj2 = shallowCopy(obj1);
+  obj2.a = 3;
+  obj2.c.d = 4;
+  console.log(obj1.a); // 1
+  console.log(obj2.a); // 3
+  console.log(obj1.c.d); // 4
+  console.log(obj2.c.d); // 4
+  ```
+
 （4）实现深拷贝的方法
 
 - 最常见的实现深拷贝的方法是通过序列化反序列化的方式。
 
-```js
-var newObj = JSON.parse(JSON.stringify(obj));
-```
+  ```js
+  var newObj = JSON.parse(JSON.stringify(obj));
+  ```
 
-但是这种方式有一些坑，限制比较多，可参照：[关于 JSON.parse(JSON.stringify(obj)) 实现深拷贝的一些坑](https://segmentfault.com/a/1190000020297508)。
+  但是这种方式有一些坑，限制比较多，可参照：[关于 JSON.parse(JSON.stringify(obj)) 实现深拷贝的一些坑](https://segmentfault.com/a/1190000020297508)。
 
 - 使用 jQuery 的 extend 方法。
 
-```js
-var arr = [1,2,3,4];
-var newArr = $.extend(true, [], arr); // true为深拷贝，false为浅拷贝
-```
+  ```js
+  var arr = [1,2,3,4];
+  var newArr = $.extend(true, [], arr); // true为深拷贝，false为浅拷贝
+  ```
 
 - 使用 lodash 的 [_.cloneDeep()](https://www.lodashjs.com/docs/lodash.cloneDeep) 方法。
+
+- 手动实现深拷贝。
+
+  ```js
+  let obj1 = {
+    a: 1,
+    b: {
+      c: 2
+    }
+  }
+  let obj2 = {
+    a: obj1.a,
+    b: {
+      c: obj1.b.c
+    }
+  }
+  
+  obj2.a = 3;
+  obj2.b.c = 4;
+
+  console.log(obj1.a); // 1
+  console.log(obj2.a); // 3
+
+  console.log(obj1.b.c); // 2
+  console.log(obj2.b.c); // 4
+  ```
+
+- 递归实现深拷贝。
+
+  ```js
+  function deepClone(obj) {
+    let newObj = Array.isArray(obj) ? [] : {};
+    if (obj && typeof obj === 'object') {
+      for (key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          // 判断 obj 的属性是否为对象
+          if (obj[key] && typeof obj[key] === 'object') {
+            // 如果是，递归
+            newObj[key] = deepClone(obj[key]);
+          } else {
+            // 如果不是，直接赋值
+            newObj[key] = obj[key];
+          }
+        }
+      }
+    }
+    return newObj;
+  }    
+  let a = [1,2,3,4], b = deepClone(a);
+  a[0] = 2;
+  console.log('a:' + a, 'b:' + b); // [2, 2, 3, 4]  [1, 2, 3, 4]
+  ```
+
+:bell: **以下深拷贝方法只适用于元素是基本数据类型。**
+
+- [Object.assign()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/assign)
+
+  ```js
+  var obj = {
+    a: 1
+  }
+
+  var newObj = Object.assign({}, obj)
+  newObj.a = 2
+  
+  console.log(obj.a) // 1
+  console.log(newObj.a) // 2
+  ```
+
+- [slice()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/slice)
+
+  一查才知道，原来字符串也有这个方法：[String.prototype.slice()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/slice)
+
+  ```js
+  var arr1 = [1, 2, 3]; 
+  var arr2 = arr1.slice(0);
+  arr2[1] = 4;
+  console.log(arr1); // [1, 2, 3]
+  console.log(arr2); // [1, 4, 3]
+  ```
+
+- [concat()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/concat)
+
+  ```js
+  var arr1 = [1, 2, 3]; 
+  var arr2 = arr1.concat();
+  arr2[1] = 4;
+  console.log(arr1); // [1, 2, 3]
+  console.log(arr2); // [1, 4, 3]
+  ```
+
+- [展开语法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Spread_syntax)
+
+  ```js
+  var arr1 = [1, 2, 3]; 
+  var arr2 = [...arr1];
+  arr2[1] = 4;
+  console.log(arr1); // [1, 2, 3]
+  console.log(arr2); // [1, 4, 3]
+  ```
