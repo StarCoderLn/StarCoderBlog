@@ -3082,3 +3082,147 @@ console.log(newObj.b.c) // 3
   console.log(arr1); // [1, 2, 3]
   console.log(arr2); // [1, 4, 3]
   ```
+
+:gem: **5. 属性描述符**
+
+（1）[Object.getOwnPropertyDescriptor()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor) 
+
+该方法返回指定对象上一个**自有属性**对应的属性描述符。（自有属性指的是直接赋予该对象的属性，不需要从原型链上进行查找的属性）
+
+```js
+var myObject = {
+  a: 2
+}
+Object.getOwnPropertyDescriptor(myObject, 'a');
+/*
+  {
+    configurable: true
+    enumerable: true
+    value: 2
+    writable: true
+    __proto__: Object
+  }
+*/
+```
+
+可以看到，这个普通对象对应的属性描述符不仅仅包含 value，还包含了另外三个特性：**wirtable**（可写）、**enumerable**（可枚举）、**configurable**（可配置）。
+
+- **Writable**
+
+  writable 决定是否可以修改属性的值。
+
+  ```js
+  var myObject = {};
+  Object.defineProperty(myObject, 'a', {
+    value: 2,
+    writable: false,
+    configurable: true,
+    enumerable: true
+  })
+  myObject.a = 3;
+  myObject.a; // 2
+  ```
+
+  如果是在严格模式下，还会报错：
+  
+  ```
+  Uncaught TypeError: Cannot assign to read only property 'a' of object '#<Object>'
+  ```
+
+- **Configurable**
+
+  configurable 特性表示对象的属性是否可以被删除，以及除 value 和 writable 特性外的其他特性是否可以被修改。
+  
+  :bell: **当 configurable 为 false 时，value 和 writable 属性还是可以被修改的，但是 configurable 和 enumerable 属性就不行。**
+
+  ```js
+  var myObject = {
+    a: 2
+  };
+
+  myObject.a = 3;
+  myObject.a; // 3
+
+  Object.defineProperty(myObject, 'a', {
+    value: 4,
+    writable: true,
+    configurable: false,
+    enumerable: true
+  })
+  myObject.a; // 4
+  myObject.a = 5;
+  myObject.a; // 5
+
+  Object.defineProperty(myObject, 'a', {
+    value: 6,
+    writable: true,
+    configurable: true,
+    enumerable: true
+  }) // Uncaught TypeError: Cannot redefine property: a at Function.defineProperty (<anonymous>)
+  ```
+
+  :bell: **可以看到，把 configurable 修改成 false 是单向操作，无法再把它重新设为 true。不仅如此，writable 和 enumerable 属性也都是只能从 true 设为 false，无法从 false 设为 true。**
+
+- **Enumerable**
+
+  enumerable 定义了对象的属性是否可以在 for...in 循环和 Object.keys() 中被枚举。
+
+（2）[Object.defineProperty()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty)
+
+该方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
+
+```js
+var myObject = {};
+Object.defineProperty(myObject, 'a', {
+  value: 2,
+  writable: true,
+  configurable: true,
+  enumerable: true
+})
+myObject.a; // 2
+```
+
+:gem: **6. 不变性**
+
+实现对象不可变的方法有以下几种：
+
+**（1）对象常量**
+
+结合 writable:false 和 configurable:false 就可以创建一个真正的常量属性（不可修改、重定义或者删除）。
+
+**（2）禁止扩展**
+
+[Object.preventExtensions()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/preventExtensions) 方法让一个对象变的不可扩展，也就是永远不能再添加新的属性。
+
+```js
+var myObject = {
+  a: 2
+};
+Object.preventExtensions(myObject);
+myObject.b = 3;
+myObject.b; // undefined
+```
+
+如果是在严格模式下，还会报错：`test.html:15 Uncaught TypeError: Cannot add property b, object is not extensible`。
+
+**（3）密封**
+
+[Object.seal()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/seal) 方法会创建一个“密封”的对象，这个方法实际上会在一个现有对象上调用 Object.preventExtensions(..) 并把所有现有属性标记为 configurable: false。
+
+所以，密封之后不仅不能添加新属性，也不能重新配置或者删除任何现有属性，但是可以修改属性的值。
+
+**（4）冻结**
+
+[Object.freeze()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze) 方法会创建一个冻结对象，这个方法实际上会在一个现有对象上调用 Object.seal(..) 并把所有“数据访问”属性标记为 writable: false，这样就无法修改它们的值。
+
+一个被冻结的对象再也不能被修改；冻结了一个对象则不能向这个对象添加新的属性，不能删除已有属性，不能修改该对象已有属性的可枚举性、可配置性、可写性，以及不能修改已有属性的值。此外，冻结一个对象后该对象的原型也不能被修改。
+
+如果一个对象的属性也是一个对象，那么需要递归冻结每个类型为对象的属性（深冻结）。
+
+**注意，这个方法返回传递的对象，而不是创建一个被冻结的副本。**
+
+::: warning 注意
+以上方法都是浅层冻结，即只针对对象本身的属性有效，如果对象的属性是一个引用类型的数据，比如对象或数组，那么这个属性还是可以更改的。
+:::
+
+:gem: **7. [[Get]]**
