@@ -24,6 +24,12 @@
   
   此时，再去向远程仓库拉取或者提交代码就没问题了。
 
+  （5）Mac 电脑生成的 ssh key 存放在以下路径中。
+
+  ```
+  /var/root/.ssh/id_rsa.pub
+  ```
+
 3. 补充  
 [VuePress中文文档](https://vuepress.vuejs.org/zh/)  
 [Markdown语法详解](https://github.com/cdoco/markdown-syntax)
