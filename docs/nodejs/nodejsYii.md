@@ -1,4 +1,8 @@
-**1. 拷贝项目**
+BFF 全称是 Backends For Frontends (服务于前端的后端)。
+
+## 构建项目结构
+
+**1. 参考 yii 项目**
 
 首先拷贝一份之前已经完成的作业一，进入项目目录，执行 npm init -y 初始化一个 package.json 文件。之所以要把 yii 项目的内容拷贝过来，是为了借鉴它的项目目录结构。
 
@@ -17,6 +21,8 @@
 （6）完成以上操作之后，一个比较成熟的项目目录结构就出来了。
 
 ![nodejs](../.vuepress/public/assets/image/nodejs/nodejsyii1.png 'nodejs')
+
+## 实现 MVC 结构
 
 **3. 编写路由 controllers**
 
@@ -81,6 +87,8 @@ class Books {}
 **8. 组件文件夹 widgets**
 
 删掉 widgets 文件夹下的所有内容。
+
+## 使用 Koa2 启动项目
 
 **9. 编写启动文件 app.js**
 
@@ -161,7 +169,7 @@ app.listen(port, () => {
 }
 ```
 
-注意，如果脚本命令的名字是 npm 自带的关键字，那么运行的时候就可以直接 “npm 关键字”，比如：npm start；如果不是 npm 自带的关键字，就需要执行 “npm run 自定义的脚本命令名字”。npm 的关键字有以下这些：
+**注意，如果脚本命令的名字是 npm 自带的关键字，那么运行的时候就可以直接 “npm 关键字”，比如：npm start；如果不是 npm 自带的关键字，就需要执行 “npm run 自定义的脚本命令名字”**。npm 的关键字有以下这些：
 
 ![nodejs](../.vuepress/public/assets/image/nodejs/nodejsyii2.png 'nodejs')
 
@@ -243,6 +251,8 @@ module.exports = ApiController;
 
 此时访问 localhost:8081 会看到页面上出现 hello；访问 localhost:8081/api/list 会看到页面上出现 {"data":123}。
 
+## 模版渲染
+
 （5）页面渲染
 
 - 在 views 文件夹下新建 index.html 文件。
@@ -323,6 +333,8 @@ module.exports = IndexController;
 如果看到页面上显示 {} 或者 ok，要么就是模版位置不对，要么就是异步引起的，即没有等待数据回来就去渲染了，所以返回空标识。因此解决方法就是 IndexController.js 文件中的方法加上 await。重新访问就可以看到显示正常了。
 
 完成以上这些，整个项目的后端基础就都弄好了。接下来可以开始做真假路由的混用了。
+
+## 真假路由
 
 **11. 真假路由的混用**
 
@@ -577,7 +589,11 @@ app.context.render = co.wrap(render({
 
 其实这就是所谓的 SSR，由服务端来渲染数据。SSR 其实在很早之前就有了，类似以前的 jsp。
 
-**13. 使用 Babel**
+## 处理不同浏览器对 ES module 的支持
+
+**13. 使用 Babel 编译 systemjs 加载**
+
+[systemjs](https://github.com/systemjs/systemjs) 是一个模块加载器，现在的微前端框架都是用它完成模块化的。
 
 （1）新建 libs 文件夹。
 
@@ -588,7 +604,7 @@ const data = 'shenzhen';
 export default data;
 ```
 
-（3）在 index.html 中引用它，注意要加上 `type="module"`。
+（3）在 index.html 中引用它，注意要加上 `type="module"`，来声明这个脚本是一个模块。
 
 ```html
 <script type="module" src="/scripts/data.js"></script>
@@ -596,7 +612,11 @@ export default data;
 
 刷新页面发现没问题。
 
-接着再改下 index.html。
+:bell: **动态加载模块**
+
+动态加载模块就是仅在需要时动态加载模块，而不必预先加载所有模块。它将 `import()` 作为函数调用，并返回一个 promise。
+
+接着再改下 index.html，让它动态加载模块。
 
 ```html
 <script type="module">
@@ -663,6 +683,8 @@ var _default = data;
 exports["default"] = _default;
 ```
 
+我们发现，babel 直接编译成了 exports 的，这样肯定不行，浏览器识别不了。所以需要用 systemjs 来加载。
+
 （8）安装 [@babel/plugin-transform-modules-systemjs](https://www.npmjs.com/package/@babel/plugin-transform-modules-systemjs)
 
 ```
@@ -700,7 +722,7 @@ System.register([], function (_export, _context) {
 
 启动项目，浏览器中也能正常访问了。
 
-（10）一般项目中都需要编译两份 js，一份给支持 module 的浏览器使用，一份给不支持 module 的浏览器使用。才能很好的支持 ES6语法。最终 index.html 中应该是这样的：
+（10）一般项目中都需要编译两份 js，一份给支持 module 的浏览器使用，一份给不支持 module 的浏览器使用。才能很好的支持 ES Module。最终 index.html 中应该是这样的：
 
 ```html
 <script type="module">
