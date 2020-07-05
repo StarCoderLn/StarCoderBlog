@@ -722,7 +722,7 @@ System.register([], function (_export, _context) {
 
 启动项目，浏览器中也能正常访问了。
 
-（10）一般项目中都需要编译两份 js，一份给支持 module 的浏览器使用，一份给不支持 module 的浏览器使用。才能很好的支持 ES Module。最终 index.html 中应该是这样的：
+（10）演示完毕后，把 module 改回 nomodule，最终 index.html 中应该是这样的：
 
 ```html
 <script type="module">
@@ -737,3 +737,50 @@ System.register([], function (_export, _context) {
     })
 </script>
 ```
+
+（11）由 ES Module 引出的 script 标签 type 属性总结
+
+- 如果浏览器支持 type="module"，那么 script 标签里的代码就不需要编译，因为它本身就支持 ES Module 了。
+
+- 如果浏览器不支持 type="module"，那么在它眼里就相当于是 type="xxx"，script 标签里的代码就不会执行。于是就会开始降级处理。
+
+- 如果浏览器既不支持 type="module"，也不支持 type="nomodule"（比如：IE），那么 script 标签里的代码都不会执行。
+
+- 如果给 script 标签加上 type="xxx"（xxx是随便定义的类型），那么 script 标签里的代码是会不执行的。
+
+- type="module" 和 type="nomodule" 还支持另外一种写法。如果是采用下面这种写法，那就无所谓了，script 标签里的代码是可以执行的，因为浏览器此时只是把它们当成一个普通的属性。
+
+  ```html
+  <script module></script>
+
+  <script nomodule></script>
+  ```
+
+- 针对下面这段代码：
+
+  ```html
+  <script type="module">
+    import('./scripts/data.js').then((_) => {
+        console.log(_);
+    })
+  </script>
+  <script nomodule src="https://cdn.staticfile.org/systemjs/6.3.3/system.js"></script>
+  <script nomodule>
+    import('./scripts/data_bundle.js').then((_) => {
+        console.log(_);
+    })
+  </script>
+  ```
+
+  I. 如果浏览器既支持 type="module"，也支持 type="nomodule"，那么就会执行 type="module" 里面的代码。浏览器支持 type="nomodule" 的话不执行 nomodule 里面的代码。**执行一次**
+
+  II. 如果浏览器支持 type="module"，不支持 type="nomodule"，就相当于给 script 标签加了个 xxx 属性，没影响，所以 nomodule 里面的代码也会执行。**执行两次**
+
+  III. 如果浏览器既不支持 type="module"，也不支持 type="nomodule"，那么就只会执行 nomodule 里面的代码。**执行一次**
+
+  第二种情况中会执行两次代码，这个就需要做处理。把不支持 type="nomodule" 时的代码阻止掉，不让它执行。阻止方法可以参考这个：[safari-nomodule.js](https://gist.github.com/samthor/64b114e4a4f539915a95b91ffd340acc)。
+
+  浏览器对 module 和 nomodule 的支持情况可在 [caniuse](https://www.caniuse.com/) 上查看。
+
+
+

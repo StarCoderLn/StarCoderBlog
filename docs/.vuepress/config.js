@@ -54,7 +54,7 @@ module.exports = {
         children: [
           { title: '《看完就够用的函数式编程》', path: '/fp/enoughFp' },
           { title: '《JavaScript轻量级函数式编程》', path: '/fp/lightFp' },
-          { title: '函数式编程学习资料', path: '/fp/fp' }
+          { title: '函数式编程学习笔记', path: '/fp/fp' }
         ]
       },
       {
@@ -87,7 +87,7 @@ module.exports = {
           { title: 'Node.js 基本使用', path: '/nodejs/nodejsApi' },
           { title: 'Node.js Express 框架', path: '/nodejs/express' },
           { title: 'Node.js Koa 框架', path: '/nodejs/koa' },
-          { title: '前后端 BFF 架构实现', path: '/nodejs/nodejsYii' }
+          { title: '前后端 BFF 架构实战', path: '/nodejs/nodejsYii' }
         ]
       },
       {
