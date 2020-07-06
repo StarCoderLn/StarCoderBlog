@@ -3226,3 +3226,46 @@ myObject.b; // undefined
 :::
 
 :gem: **7. [[Get]]**
+
+先看下面的代码：
+
+```js
+var myObject = {
+  a: 2
+};
+myObject.a; // 2
+```
+
+myObject.a 是一次属性访问，但是这条语句并不仅仅是在 myObjet 中查找名字为 a 的属性。
+
+在语言规范中，myObject.a 在 myObject 上实际上是实现了 **[[Get]] 操作**（有点像函数调用：`[[Get]]()`）。
+
+- 对象默认的内置 [[Get]] 操作首先在对象中查找是否有名称相同的属性，如果找到就会返回这个属性的值。
+
+- 如果没有找到名称相同的属性，按照 [[Get]] 算法的定义会执行另外一种非常重要的行为 —— 遍历可能存在的 [[Prototype]] 链，也就是原型链。
+
+- 如果无论如何都没有找到名称相同的属性，那 [[Get]] 操作会返回值 undefined。
+
+注意，这种方法和访问变量时是不一样的。如果你引用了一个当前词法作用域中不存在的变量，并不会像对象属性一样返回 undefined，而是会抛出一个 ReferenceError 异常。
+
+:gem: **8. [[Put]]**
+
+你可能会认为给对象的属性赋值会触发 [[Put]] 来设置或者创建这个属性。但是实际情况并不完全是这样。
+
+[[Put]] 被触发时，实际的行为取决于许多因素，包括对象中是否已经存在这个属性（这是最重要的因素）。
+
+1. 如果已经存在这个属性，[[Put]] 算法大致会检查下面这些内容。
+
+- 属性是否是访问描述符？如果是并且存在 setter 就调用 setter。
+
+- 属性的数据描述符中 writable 是否是 false？如果是，在非严格模式下默认失败，在严格模式下抛出 TypeError 异常。
+
+- 如果都不是，将该值设置为属性的值。
+
+2. 如果对象中不存在这个属性，[[Put]] 操作会更加复杂。
+
+:gem: **9. Getter 和 Setter**
+
+对象默认的 [[Put]] 和 [[Get]] 操作分别可以控制属性值的设置和获取。
+
+在 ES5 中可以使用 [getter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/get) 和 [setter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/set) 部分改写默认操作，**但是只能应用在单个属性上，无法应用在整个对象上**。getter 和 setter 都是隐藏函数，getter 会在获取属性值时调用，setter 会在设置属性值时调用。
