@@ -1,5 +1,7 @@
 [函数式编程术语](https://github.com/shfshanyue/fp-jargon-zh#product-type)
 
+常用的库：[Ramda](https://ramda.cn/)、[Lodash](https://www.lodashjs.com/)
+
 ## :books: 函数式编程思维
 
 函数式编程是数学的概念，写函数式编程的时候脑子里想的是数学里的函数，而不是 JavaScript 里的函数。因此，函数式编程实际上就是把数学的思维带到了开发中。
@@ -372,4 +374,71 @@ _.chain(data).map().reverse().value()
 
 - 惰性链可以添加一个输入对象的状态，从而能够将这些输入转换为所需的输出操作链接在一起。与简单的数组操作不一样，尽管它是一个复杂的程序，但仍然可以避免创建任何变量，并且有效消除所有循环。而且**在最后调用 value 之前并不会真正的执行任何操作**。这就是所谓的**惰性链**。
 
+```js
+// _.chain 可以推断可优化点，如合并执行或存储优化
+// 合并函数执行并压缩计算过程中使用的临时数据结构，降低内存占用
+const trace = msg => console.log(msg);
+let square = x => Math.pow(x, 2);
+let isEven = x => x % 2 === 0;
+
+// 使用组合子跟踪
+square = R.compose(R.tap(() => trace('map 数组')), square);
+isEven = R.compose(R.tap(() => trace('filter 数组')), isEven);
+
+const numbers = _.range(200);
+const result = _.chain(numbers)
+                .map(square)
+                .filter(isEven)
+                .take(3)
+                .value();
+console.log(result);
+```
+
 - 当输入很大但只有一个小的子集有效时，避免不必要的函数调用就是所谓的**惰性求值**。惰性求值方法有很多，如组合子（alt，类似于 ||，先计算 fun1，如果返回值是 false、null、undefined，就不再执行func2），但是目的都是一样的，即尽可能的推迟求值，直到依赖的表达式被调用。
+
+```js
+const alt = _.curry((func1, fun2, val) => fun1(val) || fun2(val));
+const showStudent = _.compose(函数体1, alt(xx1, xx2));
+showStudent({});
+```
+
+```js
+var object = {a: 'xx', b: 2};
+var values = _.memoize(_.values);
+values(object);
+object.a = 'hello';
+console.log(values.cache.get(object)); // ["xx", 2]
+```
+
+- **惰性函数**很好理解，假如同一个函数被大量范围调用，并且这个函数内部又有许多判断来检测函数，这样对于一个调用会浪费时间和浏览器资源，所以当第一次调用完成后，直接把这个函数改写，不再需要判断。
+
+```js
+// 判断浏览器的 Ajax 对象
+function createXHR() {
+    var xhr = null;
+    if (typeof XMLHttpRequest !== 'undefined') {
+        xhr = new XMLHttpRequest();
+        createXHR = function() {
+            return XMLHttpRequest(); // 直接返回一个懒函数，这样没必要再往下走
+        }
+    } else {
+        try { 
+            xhr = new ActiveXObject('Msxml2.XMLHTTP');
+            createXHR = function() {
+                return new ActiveXObject('Msxml2.XMLHTTP');
+            }
+        } catch(e) {
+            try {
+                xhr = new ActiveXObject('Microsoft.XMLHTTP');
+                createXHR = function() {
+                    return new ActiveXObject('Microsoft.XMLHTTP');
+                }
+            } catch(e) {
+                createXHR = function() {
+                    return null;
+                }
+            }
+        }
+    }
+}
+```
