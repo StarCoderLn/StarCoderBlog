@@ -3248,6 +3248,18 @@ myObject.a 是一次属性访问，但是这条语句并不仅仅是在 myObjet 
 
 注意，这种方法和访问变量时是不一样的。如果你引用了一个当前词法作用域中不存在的变量，并不会像对象属性一样返回 undefined，而是会抛出一个 ReferenceError 异常。
 
+```js
+var myObject = {
+  a: undefined
+}
+myObject.a; // undefined
+myObject.b; // undefined
+```
+
+从返回值的角度来说，这两个引用没有区别——它们都返回了 undefined。然而，尽管乍 看之下没什么区别，实际上底层的 [[Get]] 操作对myObject.b 进行了更复杂的处理。
+
+:bell: **由于仅根据返回值无法判断出到底变量的值为 undefined 还是变量不存在，所以 [[Get]] 操作返回了 undefined**。
+
 :gem: **8. [[Put]]**
 
 你可能会认为给对象的属性赋值会触发 [[Put]] 来设置或者创建这个属性。但是实际情况并不完全是这样。
@@ -3266,6 +3278,167 @@ myObject.a 是一次属性访问，但是这条语句并不仅仅是在 myObjet 
 
 :gem: **9. Getter 和 Setter**
 
-对象默认的 [[Put]] 和 [[Get]] 操作分别可以控制属性值的设置和获取。
+- 对象默认的 [[Put]] 和 [[Get]] 操作分别可以控制属性值的设置和获取。
 
-在 ES5 中可以使用 [getter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/get) 和 [setter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/set) 部分改写默认操作，**但是只能应用在单个属性上，无法应用在整个对象上**。getter 和 setter 都是隐藏函数，getter 会在获取属性值时调用，setter 会在设置属性值时调用。
+- 在 ES5 中可以使用 [getter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/get) 和 [setter](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/set) 部分改写默认操作，**但是只能应用在单个属性上，无法应用在整个对象上**。getter 和 setter 都是隐藏函数，getter 会在获取属性值时调用，setter 会在设置属性值时调用。
+
+:bell: 当你给一个属性定义 getter、setter 或者两者都有时，这个属性会被定义为“**访问描述符**”（和“数据描述符”相对）。
+
+:bell: **对于访问描述符来说，JavaScript 会忽略它们的 value 和 writable 特性，取而代之的是关心 set 和 get（还有 configurable 和 enumerable）特性**。
+
+```js
+var myObject = {
+  // 给 a 定义一个 getter
+  get a() {
+    return 2;
+  }
+}
+Object.defineProperty(myObject, 'b', {
+  get: function() {
+    return this.a * 2;
+  },
+  enumerable: true
+})
+myObject.a; // 2
+myObject.b; // 4
+```
+
+不管是对象文字语法中的 get a() { .. }，还是 defineProperty(..) 中的显式定义，二者都会在对象中创建一个不包含值的属性，对于这个属性的访问会自动调用一个隐藏函数，它的返回值会被当作属性访问的返回值。
+
+```js
+var myObject = {
+  // 给 a 定义一个 getter
+  get a() {
+    return 2;
+  }
+}
+myObject.a = 3;
+myObject.a; // 2
+```
+
+由于我们只定义了 a 的 getter，所以对 a 的值进行设置时 set 操作会忽略赋值操作，不会抛出错误。而且即便有合法的 setter，由于我们自定义的 getter 只会返回 2，所以 set 操作是没有意义的。
+
+为了让属性更合理，还应当定义 setter，setter 会覆盖单个属性默认的 [[Put]]（也被称为赋值）操作。**通常来说 getter 和 setter 是成对出现的**（只定义一个的话通常会产生意料之外的行为）。
+
+```js
+var myObject = {
+  // 给 a 定义一个 getter
+  get a() {
+    return this._a_;
+  },
+  // 给 a 定义一个 setter
+  set a(val) {
+    return this._a_ = val * 2;
+  }
+}
+myObject.a = 2;
+myObject.a; // 4
+```
+
+:gem: **10. 存在性**
+
+前面提到过一种情况，myObject.a 的属性访问返回值可能是 undefined，但是这个值有可能是属性中存储的 undefined，也可能是因为属性不存在所以返回 undefined。那么如何区分这两种情况呢？
+
+我们可以在不访问属性值的情况下判断对象中是否存在这个属性。
+
+- [in](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/in) 操作符会**检查属性是否在对象及其 [[Prototype]] 原型链中**。
+
+- [hasOwnProperty()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty) **只会检查属性是否在 myObject 对象中，不会检查 [[Prototype]] 链**。
+
+```js
+var myObject = {
+  a: 2
+}
+console.log('a' in myObject); // true
+console.log('b' in myObject); // false
+
+myObject.hasOwnProperty('a'); // true
+myObject.hasOwnProperty('b'); // false
+```
+
+::: warning 注意
+看起来 in 操作符可以检查容器内是否有某个值，但是它实际上检查的是某个属性名是否存在。对于数组来说这个区别非常重要。
+
+```js
+var trees = new Array('redwood', 'bay', 'cedar', 'oak', 'maple');
+0 in trees        // 返回true
+3 in trees        // 返回true
+6 in trees        // 返回false
+'bay' in trees    // 返回false (必须使用索引号,而不是数组元素的值)
+
+'length' in trees // 返回true (length是一个数组属性)
+
+Symbol.iterator in trees // 返回true (数组可迭代，只在ES2015+上有效)
+```
+:::
+
+所有的普通对象都可以通过对于 Object.prototype 的委托来访问 hasOwnProperty()，但是有的对象可能没有连接到 Object.prototype，比如通过 Object.create(null) 来创建的对象。这种对象就没法访问到 hasOwnProperty()。
+
+这时可以用以下方法解决：
+
+```js
+Object.prototype.hasOwnProperty.call(myObject, 'a')
+```
+
+它借用基础的 hasOwnProperty 方法并把它显示绑定到 myObject 上。
+
+- **枚举**
+
+```js
+var myObject = {};
+
+Object.defineProperty(myObject, 'a', {
+  value: 2,
+  enumerable: true
+})
+
+Object.defineProperty(myObject, 'b', {
+  value: 3,
+  enumerable: false
+})
+
+console.log(myObject.b); // 3
+console.log('b' in myObject); // true
+console.log(myObject.hasOwnProperty('b')); // true
+
+for (var k in myObject) {
+  console.log(k, myObject[k]); // 'a' 2
+}
+```
+
+::: warning 注意
+在数组上应用 [for..in](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/for...in) 循环有时会产生出人意料的结果，因为这种枚举不仅会包含所有数值索引，还会包含所有可枚举属性。**最好只在对象上应用 for..in 循环，如果要遍历数组就使用传统的 for 循环来遍历数值索引**。
+:::
+
+另一种方式来区分属性是否可枚举。
+
+```js
+var myObject = {};
+
+Object.defineProperty(myObject, 'a', {
+  value: 2,
+  enumerable: true
+})
+
+Object.defineProperty(myObject, 'b', {
+  value: 3,
+  enumerable: false
+})
+
+console.log(myObject.propertyIsEnumerable('a')); // true
+console.log(myObject.propertyIsEnumerable('b')); // false
+
+console.log(Object.keys(myObject)); // ['a']
+console.log(Object.getOwnPropertyNames(myObject)); // ['a', 'b']
+```
+
+- [propertyIsEnumerable()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/propertyIsEnumerable) 方法会检查给定的属性名是否直接存在于对象中（而不是在原型链 上）并且满足 enumerable:true。
+
+- [Object.keys()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) 方法会返回一个数组，包含所有可枚举属性。
+
+- [Object.getOwnPropertyNames()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/getOwnPropertyNames) 方法会返回一个数组，包含所有属性，无论它们是否可枚举。
+
+### :blue_book: 遍历
+
+for..in 循环可以用来遍历对象的可枚举属性列表（包括 [[Prototype]] 链）。但是如何遍历属性的值呢？
+
