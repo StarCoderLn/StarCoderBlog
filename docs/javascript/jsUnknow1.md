@@ -2625,11 +2625,11 @@ foo.call(obj); // 2
 
 1. 如果要判断一个运行中函数的 this 绑定，就需要找到这个函数的直接调用位置。找到之后就可以顺序应用下面这四条规则来判断 this 的绑定对象。
 
-  （1） 由new调用?绑定到新创建的对象。
+  （1） 由new调用? 绑定到新创建的对象。
 
-  （2） 由call或者apply(或者bind)调用?绑定到指定的对象。
+  （2） 由call或者apply(或者bind)调用? 绑定到指定的对象。
 
-  （3） 由上下文对象调用?绑定到那个上下文对象。
+  （3） 由上下文对象调用? 绑定到那个上下文对象。
 
   （4） 默认:在严格模式下绑定到undefined，否则绑定到全局对象。
 
@@ -3440,5 +3440,145 @@ console.log(Object.getOwnPropertyNames(myObject)); // ['a', 'b']
 
 ### :blue_book: 遍历
 
-for..in 循环可以用来遍历对象的可枚举属性列表（包括 [[Prototype]] 链）。但是如何遍历属性的值呢？
+**for..in 循环可以用来遍历对象的可枚举属性列表（包括 [[Prototype]] 链）**。但是如何遍历属性的值呢？
 
+对于数值索引的数组来说，可以使用标准的 for 循环来遍历值。
+
+```js
+var myArray = [1, 2, 3];
+for (var i = 0; i < myArray.length; i++) {
+  console.log(myArray[i]); // 1 2 3
+}
+```
+
+这实际上并不是在遍历值，**而是遍历下标来指向值**，如 myArray[i]。
+
+- **forEach**
+
+[forEach()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach) 会遍历数组中的所有值并忽略回调函数的返回值。
+
+- **every**
+
+[every()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/every) 会一直运行直到回调函数返回 false（或者“假”值）。
+
+- **some**
+
+[some()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/some) 会一直运行直到回调函数返回 true（或者 “真”值）。
+
+- **for...of**
+
+[for...of](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/for...of) 循环首先会向被访问对象请求一个迭代器对象，然后通过调用迭代器对象的 next() 方法来遍历所有返回值。
+
+```js
+var myArray = [1, 2, 3];
+for (var v of myArray) {
+  console.log(v); // 1 2 3
+}
+```
+
+数组有内置的 [@@iterator](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/@@iterator)，因此 for..of 可以直接应用在数组上。我们也可以使用内置的 @@ iterator 来手动遍历数组。
+
+```js
+var myArray = [1, 2, 3];
+var it = myArray[Symbol.iterator]();
+
+console.log(it.next()); // {value: 1, done: false}
+console.log(it.next()); // {value: 2, done: false}
+console.log(it.next()); // {value: 3, done: false}
+console.log(it.next()); // {value: undefined, done: true}
+```
+
+::: warning 注意
+@@iterator 看起来很像一个对象，但是它本身并不是一个迭代器对象，而是一个返回迭代器对象的函数。
+:::
+
+和数组不同，普通的对象没有内置的 @@iterator，所以无法自动完成 for..of 遍历。
+
+不过我们可以给任何想遍历的对象定义 @@iterator。比如：
+
+```js
+var myObject = {
+  a: 2,
+  b: 3
+};
+
+Object.defineProperty(myObject, Symbol.iterator, {
+  enumerable: false,
+  writable: false,
+  configurable: false,
+  value: function() {
+    var that = this;
+    var idx = 0;
+    var ks = Object.keys(that);
+    return {
+      next: function() {
+        return {
+          value: that[ks[idx++]],
+          done: (idx > ks.length)
+        }
+      }
+    }
+  }
+})
+
+// 手动遍历
+var it = myObject[Symbol.iterator]();
+console.log(it.next()); // {value: 2, done: false}
+console.log(it.next()); // {value: 3, done: false}
+console.log(it.next()); // {value: undefined, done: true}
+
+// 使用 for...of 遍历
+for (var v of myObject) {
+  console.log(v); // 2 3
+}
+```
+
+使用 Object.defineProperty() 定义自己的 @@iterator 主要是为了让它不可枚举。我们也可以直接在定义对象时进行声明，比如：
+
+```js
+var myObject = {
+  a: 2,
+  b: 3,
+  [Symbol.iterator]: function() {}
+}
+```
+
+对于用户定义的对象来说，结合 for..of 循环和自 定义迭代器可以组成非常强大的对象操作工具。
+
+我们甚至可以定义一个“无限”迭代器，它永远不会“结束”并且总会返回一个新值（比如随机数、递增值、唯一标识符，等等）。这样的迭代器永远不会结束并且会被挂起：
+
+```js
+var randoms = {
+  [Symbol.iterator]: function() {
+    return {
+      next: function() {
+        return {
+          value: Math.random()
+        }
+      }
+    }
+  }
+}
+
+var random_pool = [];
+for (var n of randoms) {
+  random_pool.push(n);
+  
+  // 防止无限运行
+  if (random_pool.length === 100) break;
+}
+```
+
+### :blue_book: 小结
+
+1. JavaScript 中的对象有字面形式（比如 var a = { .. }）和构造形式（比如 var a = new Array(..)）。**字面形式更常用，不过有时候构造形式可以提供更多选项**。
+
+2. **许多人都以为“JavaScript 中万物都是对象”，这是错误的**。对象是8中数据类型之一（7种基本数据类型，1种对象类型）。对象有包括 function 在内的子类型，不同子类型具有不同的行为，比如**内部标签 [object Array] 表示这是对象的子类型数组**。
+
+3. 对象就是键 / 值对的集合。可以通过 .propName 或者 ["propName"] 语法来获取属性值。访问属性时，引擎实际上会调用内部的默认 [[Get]] 操作（在设置属性值时是 [[Put]]）， [[Get]] 操作会检查对象本身是否包含这个属性，如果没找到的话还会查找 [[Prototype]] 链。
+
+4. 属性的特性可以通过**属性描述符**来控制，比如 writable 和 configurable。此外，可以使用 `Object.preventExtensions(..)`、`Object.seal(..)` 和 `Object.freeze(..)` 来设置对象（及其属性）的不可变性级别。
+
+5. 属性不一定包含值 —— 它们可能是具备 getter/setter 的“**访问描述符**”。此外，属性可以是可枚举或者不可枚举的，这决定了它们是否会出现在 for..in 循环中。
+
+6. 可以使用 ES6 的 for..of 语法来遍历数据结构（数组、对象等等）中的值，for..of 会寻找内置或者自定义的 @@iterator 属性并调用它的 next() 方法来遍历数据值。
