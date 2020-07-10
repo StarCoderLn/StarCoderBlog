@@ -94,7 +94,8 @@ module.exports = {
         title: '算法学习总结',
         collapsable: false,
         children: [
-          { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' }
+          { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' },
+          { title: '动态规划', path: '/algorithm/dynamic' }
         ]
       },
       {
