@@ -982,24 +982,93 @@ yideng.method(fn, 1) // 10 2
 :lock: 1. 请写出如下代码输出值，并解释为什么。
 
 ```js
-console.log({} + []);
-{} + [];
-[] + {};
-{} + {};
-console.log([] == false);
-console.log({} == false);
+console.log({} + '');     // "[object Object]"
+console.log({} + []);     // "[object Object]"
+{} + [];                  // 0
+[] + {};                  // "[object Object]"
+{} + {};                  // NaN
+console.log([] == false); // true
+console.log({} == false); // false
+{} == false;              // Uncaught SyntaxError: Unexpected token '=='
 ```
 
 ```js
 if ([]) {
-  console.log([] == false);
+  console.log([] == false);                    // true
 }
-('b' + 'a' + + 'a' + 'a').toLocaleLowerCase();
-0 == '0';
-Boolean('0') == Boolean(0);
-NaN == 0;
-NaN <= 0;
+('b' + 'a' + + 'a' + 'a').toLocaleLowerCase(); // "banana"
+0 == '0';                                      // true，'0' 会先被转成 number，Number('0')
+'0' == 0;                                      // true
+Boolean('0') == Boolean(0);                    // false
+NaN == 0;                                      // false
+NaN <= 0;                                      // false
+NaN >= 0;                                      // false
+NaN == NaN;                                    // false
+null == 0;                                     // false
+null >= 0;                                     // true
+null <= 0;                                     // true
+null == null;                                  // false
+null == undefined;                             // true
+{} == {};                                      // false
+[] == [];                                      // false
+[] == ![];                                     // true，! 的优先级比 == 高，所以右边的先转成了 false
+[] == 0;                                       // true
+[] == false;                                   // true    
 ```
+
+> 答案解析：
+
+- valueOf 方法用来获取原始值。
+
+- toString 方法用来返回字符串。
+
+- 自定义对象的 valueOf 和 toString 方法，来演示对象相加时是怎么加的。
+
+```js
+let obj = {
+  valueOf: function() {
+    console.log('valueOf');
+    return 1;
+  },
+  toString: function() {
+    console.log('toString');
+    return {};
+  }
+};
+
+console.log(obj + []);
+// valueOf
+// 1
+```
+
+可以看到，对象相加的时候进入了 valueOf。如果把 valueOf 的返回值注释掉，也还是进入 valueOf。
+
+```js
+// valueOf
+// undefined
+```
+
+- `console.log({} + []);` 之所以会输出那样的结果是**因为括号的原因，形成了代码块，{} 的原始值是 [object Object]，[] 的原始值是空**，所以加起来的结果就是 [object Object]。如果把 console.log 去掉，只是 ({} + [])，结果也是 [object Object]。如果把 [] 换成 ''，（{} + ''）的结果也是 [object Object]。**object 代表对象类型，Object 代表真正的对象**。
+
+- `('b' + 'a' + + 'a' + 'a').toLocaleLowerCase();` 这一段的核心其实在于 **( + 'a') 的值是 NaN**。这是因为**任何对象或字符串跟一个空的值加，结果都会强制转换成 number 类型**。比如 **( + {}) 的值也是 NaN**。但是 **( + []) 的值是 0**。
+
+- **`{} + {};` 的值是 NaN，但是 `{} + {}` 的值居然是 "[object Object][object Object]"**，只是少了一个分号，值就变了。
+
+- 记住一点，**如果 {} 的前面没有东西，那么它就可以忽略掉**。比如 `{} + [];` 和 `( + [])` 的值是一样的，都是0。**如果 {} 的前面有括号或者是有另一个 {} 相加，那么就形成了代码块**，比如 `({} + []);`、`{} + {}`、`({} + {});` 和 `[] + {};` 的值都是 "[object Object]"。
+
+- `{ const a = 20; } + {}`的值是 NaN，如果前一个对象有值，就会强制转换成 number 类型。
+
+- `Boolean('0') == Boolean(0);` 的结果是 false，是因为 Boolean('0') 的值为 true，而 Boolean(0) 的值为 false。
+
+- NaN 是数字，所以 **typeof NaN 的值是 "number"**。
+
+- null 只等于 undefined，null 使用关系运算符（+，>，< 而不是 ==）的时候会转为0。
+
+- 对象的比较和运算会使用 ToPrimitive 运算转换左与右运算元为原始数据类型值(primitive)。
+
+- ToPrimitive 运算：**valueOf 能得到原始数据类型的值，则返回这个值。-> toString 能得到原始数据类型的值，则返回这个值。-> 报错 TypeError**。
+
+- [] == 0 的比较流程是：**[].valueOf().toStrng() == 0 转成了 '' == 0**。
 
 :lock: 2. 请写出如下输出值，并完成附加题的作答。
 
