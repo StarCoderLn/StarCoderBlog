@@ -1,7 +1,5 @@
 [函数式编程术语](https://github.com/shfshanyue/fp-jargon-zh#product-type)
 
-常用的库：[Ramda](https://ramda.cn/)、[Lodash](https://www.lodashjs.com/)
-
 ## :books: 函数式编程思维
 
 函数式编程是数学的概念，写函数式编程的时候脑子里想的是数学里的函数，而不是 JavaScript 里的函数。因此，函数式编程实际上就是把数学的思维带到了开发中。
@@ -526,4 +524,361 @@ return continue
 
   II. 堆栈信息丢失了，开发者难以调试。
 
-- 既然浏览器不支持，我们可以把这些递归写成 while。
+- 既然浏览器不支持，我们可以把这些递归写成 `while`。
+
+比如下面这个例子。
+
+```js
+// 直接爆栈了
+function runStack(n) {
+    if (n === 0) return 100;
+    return runStack(n - 2);
+}
+runStack(50000); // Uncaught RangeError: Maximum call stack size exceeded
+```
+
+可以使用 while 解决：
+
+```js
+// 正常输出，不会爆栈
+function runStack(n) {
+    while (true) {
+        if (n === 0) {
+            return 100;
+        }
+        n = n - 2;
+    }
+}
+runStack(50000);
+```
+
+也可以使用蹦床函数解决：
+
+```js
+// 正常输出，不会爆栈
+function runStack(n) {
+    if (n === 0) return 100;
+    return runStack.bind(null, n - 2); // 返回自身的一个版本
+}
+function trampoline(f) {
+    while (f && f instanceof Function) {
+        f = f();
+    }
+    return f;
+}
+trampoline(runStack(50000));
+```
+
+::: warning 注意
+while 循环的风险就是会陷入死循环，主线程会死掉，所以要记得终止它。而爆栈是内存不够用，主线程还在。
+:::
+
+### :blue_book: 闭包
+
+```js
+function makePowerFn(power) {
+    function powerFn(base) {
+        return Math.pow(base, power);
+    }
+    return powerFn;
+}
+var square = makePowerFn(2);
+square(3); // 9
+```
+
+虽然外层的 makePowerFn 函数执行完毕，栈上的调用帧被释放，但是堆上的作用域并不被释放，因此 power 依旧可以被 powerFn 函数访问，这样就形成了闭包。
+
+### :blue_book: 范畴与容器
+
+1. 我们可以把范畴想像成一个容器，里面包含两样东西，**值**和**值的变形关系（即函数）**。
+
+2. 范畴论使用函数，表达范畴之间的关系。
+
+3. 伴随着范畴论的发展，就发展出一整套函数的运算方法。这套方法起初只用于数学运算，后来有人将它在计算机上实现了，就变成了今天的函数式编程。
+
+4. **本质上，函数式编程只是范畴论的运算方法**，跟数理逻辑、微积分、行列式是同一类东西，都是数学方法，只是碰巧它能用来写程序。为什么函数式编程要求函数必须是纯的？**因为它是一种数学运算，原始目的是求值，不做其他事情，否则就无法满足函数运算法则了**。
+
+### :blue_book: 函子 Functor
+
+1. 函数不仅可以用于同一个范畴中值的转换，还可以用于将一个范畴转成另一个范畴。这就涉及到了函子（Functor）。
+
+2. **函子是函数式编程中最重要的数据类型，也是基本的运算单位和功能单位**。它首先是一种范畴，也就是说，是一个容器，包含了值和变形关系。比较特殊的是，它的变形关系可以依次作用于每一个值，将当前容器变形成另一个容器。
+
+3. jQuery 的 $() 返回的对象并不是一个原生的 DOM 对象，而是对于原生对象的一种封装，这在某种意义上就是一个“容器“（但它并不是函数式的）。
+
+4. Functor 是遵守一些特定规则的容器类型。
+
+5. Functor 是一个对于函数调用抽象，我们赋予容器自己去调用函数的能力。**把东西装进一个容器，只留出一个接口 map 给容器外的函数，map 一个函数时，我们让容器自己来运行这个函数，这样容器就可以自由的选择何时何地如何操作这个函数**，以致于拥有惰性求值、错误处理、异步调用等非常强大的特性。
+
+```js
+var Container = function(x) {
+    this._value = x;
+}
+
+// 函数式编程一般约定，函子有一个 of 方法
+Container.of = x => new Container(x);
+
+// 一般约定，函子的标志就是容器具有 map 方法。该方法将容器里的每个值，映射到另一个容器。
+Container.prototype.map = function(f) {
+    return Container.of(f(this._value));
+}
+
+Container.of(3)
+    .map(x => x + 1) // Container(4)
+    .map(x => 'Result is ' + x); // Container('Result is 4')
+```
+
+6. ES6 创建一个简单的函子。
+
+```js
+class Functor {
+    constructor(val) {
+        this.val = val;
+    } 
+    map(f) {
+        return new Functor(f(this.val));
+    }
+}
+(new Functor(2)).map(function(two) {
+    return two + 2;
+}) // Functor(4)
+```
+
+7. 上面的例子说明，**函数式编程里面的运算，都是通过函子完成，即运算不直接针对值，而是针对这个值的容器——函子**。函子本身具有对外接口（map 方法），各种函数就是运算符，通过接口接入容器，引发容器里面的值的变形。
+
+8. 因此，**学习函数式编程，实际上就是学习函子的各种运算**。由于可以把运算方法封装在函子里面，所以又衍生出各种不同类型的函子，**有多少种运算，就有多少种函子。函数式编程就变成了运用不同的函子，解决实际问题**。
+
+### :blue_book: Pointed 函子
+
+1. 函子只是一个实现了 map 契约的接口。Pointed 函子是一个函子的子集。
+
+2. 生成新的函子时，使用了 new 命令，这是在太不像函数式编程了，因为 new 命令是面向对象编程的标志。函数式编程一般约定，函子有一个 of 方法，用来生成新的容器。
+
+```js
+Functor.of = function(val) {
+    return new Functor(val);
+}
+Functor.of(2).map(function(two) {
+    return two + 2;
+}) // Functor(4)
+```
+
+```js
+// 数组成为一个 Pointed 函子
+Array.of('123');
+```
+
+### :blue_book: Maybe 函子
+
+1. **Maybe 用于处理错误和异常**。
+
+2. 函子接收各种函数，处理容器里的值。这里就有一个问题：容器内部的值可能是一个空值（比如：null），而外部函数未必有处理空值的机制，如果传入空值，可能就会出错。
+
+```js
+// Maybe 函子
+var Maybe = function(x) {
+    this.__value = x;
+}
+Maybe.of = function(x) {
+    return new Maybe(x); 
+}
+Maybe.prototype.map = function(f) {
+    return this.isNothing() ? Maybe.of(null) : Maybe.of(f(this.__value));
+}
+Maybe.prototype.isNothing = function() {
+    return (this.__value === null || this.__value === undefined); 
+}
+```
+
+```js
+Functor.of(null).map(function(s) {
+    return s.toUpperCase();
+})
+
+class Maybe extends Functor {
+    map(f) {
+        return this.val ? Maybe.of(f(this.val)) : Maybe.of(null);
+    }
+}
+
+Maybe.of(null).map(function(s) {
+    return s.toUpperCase();
+}) // Maybe(null)
+```
+
+### :blue_book: Either 函子
+
+1. 我们的容器能做的事情太少了，try/catch/throw 并不是“纯”的，因为它从外部接管了我们的函数，并且在这个函数出错时抛弃了它的返回值。
+
+2. Promise 是可以调用 catch 来集中处理错误的。
+
+3. 事实上 Either 并不只是用来做错误处理的，它表示了逻辑或，范畴学里的 coproduc。
+
+4. 条件运算 if ... else ... 是最常见的运算之一，在函数式编程里，使用 Either 函子表达。
+
+5. Either 函子内部有两个值：**左值（Left）**和**右值（Right）**。**右值是在正常情况下使用的值，左值是右值不存在时使用的默认值**。
+
+```js
+class Either extends Functor {
+    constructor(left, right) {
+        this.left = left;
+        this.right = right;
+    }
+    map(f) {
+        return this.right ?
+            Either.of(this.left, f(this.right)) :
+            Either.of(f(this.left), this.right); 
+    }
+}
+Either.of = function (left, right) {
+    return new Either(left, right);
+};
+
+var addOne = function (x) {
+    return x + 1;
+};
+Either.of(5, 6).map(addOne); // Either(5, 7);
+Either.of(1, null).map(addOne); // Either(2, null);
+Either.of({address: 'xxx'}, currentUser.address).map(updateField);
+```
+
+```js
+var Left = function(x) {
+    this._value = x;
+}
+var Right = function(x) {
+    this._value = x;
+}
+Left.of = function(x) {
+    return new Left(x);
+}
+Right.of = function(x) {
+    return new Right(x);
+}
+
+// 这里不同！
+Left.prototype.map = function(f) {
+    return this;
+}
+Right.prototype.map = function(f) {
+    return Right.of(f(this._value));
+}
+```
+
+6. **Left 和 Right 唯一的区别就是 map 方法的实现**。Right.map 的行为跟我们之前提到的 map 函数一样。但是 Left.map 就很不同了：它不会对容器做任何事情，只是很简单的把这个容器拿进来又扔出去。这个特性意味着，Left 可以用来传递一个错误消息。
+
+```js
+var getAge = user => user.age ? Right.of(user.age) : Left.of("ERROR!");
+getAge({ name: 'stark', age: '21' }).map(age => 'Age is ' + age); //=> Right('Age is 21')
+getAge({ name: 'stark' }).map(age => 'Age is ' + age); //=> Left('ERROR!')
+```
+
+Left 可以让调用链中任意一环的错误立刻返回到调用链尾部，这给我们错误处理带来了很大的方便，再也不用一层一层的 try/catch。
+
+### :blue_book: AP 函子
+
+1. 函子里面包含的值，完全可能是函数。我们可以想象这样一种情况，一个函子的值是数值，另一个函子的值是函数。
+
+```js
+class Ap extends Functor {
+    ap(F) {
+        return Ap.of(this.val(F.val));
+    }
+}
+
+Ap.of(addTwo).ap(Functor.of(2));
+```
+
+### :blue_book: IO
+
+1. 真正的函数总是要去接触肮脏的世界。
+
+```js
+function readLocalStorage() {
+    return window.localStorage;
+}
+```
+
+2. IO 跟前面那几个 Functor 不同的地方在于，**它的 _value 是一个函数。它把不纯的操作（比如 IO、网络请求、DOM）包裹到一个函数内，从而延迟这个操作的执行**。所以我们认为，**IO 包含的是被包裹的操作的返回值**。
+
+3. IO 其实也算是惰性求值。
+
+```js
+import _ from 'lodash'; 
+var compose = _.flowRight;
+var IO = function(f) {
+    this.__value = f;
+}
+IO.of = x => new IO(_ => x);
+IO.prototype.map = function(f) {
+    return new IO(compose(f, this.__value))
+};
+```
+
+```js
+import _ from 'lodash'; 
+var compose = _.flowRight;
+class IO extends Monad{
+    map(f){
+        return IO.of(compose(f, this.__value))
+    }
+}
+```
+
+```js
+var fs = require('fs');
+var readFile = function(filename) {
+    return new IO(function() {
+        return fs.readFileSync(filename, 'utf-8');
+    });
+};
+
+readFile('./user.txt').flatMap(tail).flatMap(print);
+// 等同于
+readFile('./user.txt').chain(tail).chain(print)；
+```
+
+### :blue_book: Monad
+
+1. Monad 就是一种设计模式，表示将一个运算过程，通过函数拆解成互相连接的多个步骤。你只要提供下一步运算所需的函数，整个运算就会自动执行下去。
+
+2. Promise 就是一种 Monad。
+
+3. Monad 让我们避开了嵌套地狱，可以轻松的进行深度嵌套的函数式编程，比如 IO 和其它异步任务。
+
+4. 记得让上面的 IO 集成 Monad。
+
+5. Monad 函子的作用是，总是返回一个单层的函子。它有一个 faltMap 方法，与 map 方法作用相同。唯一的区别就是如果生成了一个嵌套函子，它会取出后者内部的值，保证返回的永远是一个单层的容器，不会出现嵌套的情况。
+
+```js
+class Monad extends Functor {
+    join() {
+        return this.val; 
+    }
+    flatMap(f) {
+        return this.map(f).join();
+    }
+}
+```
+
+如果函数 f 返回的是一个函子，那么 this.map(f) 就会生成一个嵌套的函子。所以，join 方法保证了 flatMap 方法总是返回一个单层的函子。这意味着嵌套的函子会被铺平（flattern）。
+
+## :books: 当下函数式编程比较火热的库
+
+- [RxJS](https://cn.rx.js.org/)，响应式函数式编程库（FRP），可以算是 JavaScript 顶级的库之一了
+
+- [Cycle.js](https://cycle.js.org/getting-started.html)
+
+- [Lodash](https://www.lodashjs.com/)
+
+- [Lazy.js](https://github.com/dtao/lazy.js/)，惰性求值
+
+- [Underscore](http://underscorejs.org/)
+
+- [Ramda](https://ramda.cn/)
+
+## :books: 函数式编程的实际应用场景
+
+- 易调试、热部署、并发
+
+- 单元测试
