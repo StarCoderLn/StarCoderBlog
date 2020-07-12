@@ -1062,7 +1062,7 @@ console.log(obj + []);
 
 - NaN 是数字，所以 **typeof NaN 的值是 "number"**。
 
-- null 只等于 undefined，null 使用关系运算符（+，>，< 而不是 ==）的时候会转为0。
+- **null 不是对象，但是 typeof null 的值是 "object"**，这是 JavaScript 的一个bug，历史遗留问题。null 只等于 undefined，null 使用关系运算符（+，>，< 而不是 ==）的时候会转为0。
 
 - 对象的比较和运算会使用 ToPrimitive 运算转换左与右运算元为原始数据类型值(primitive)。
 
@@ -1085,8 +1085,12 @@ var yideng = {
   }
 }
 const result = yideng.method.bind(null);
-result(fn, 1);
+result(fn, 1); // 0 2
 ```
+
+> 答案解析
+
+这道题跟基础测试 A 中的最后一道题是类似的。看那道题的解析就可以了。
 
 :lock: 附加题
 
@@ -1099,8 +1103,16 @@ function foo() {
   bar();
 }
 var myName = '深圳大学';
-foo();
+foo(); // 深圳大学
 ```
+
+> 答案解析
+
+- 这道题考察的就是变量提升和词法作用域。`var myName = '深圳大学';` 这句代码会提升，bar 函数在定义的时候它的词法作用域就是确定的了，所以它是不会去找 foo 函数里定义的 myName。记住，**作用域链是在定义的时候确定的，不是在执行的时候确定的**。
+
+- 如果我们把 `var myName = '深圳大学';` 这句代码注释掉，那么会报错：Uncaught ReferenceError: myName is not defined。
+
+- 如果 bar 函数里边改成 `console.log(this.myName);`，那这道题就需要从另一个角度来思考了。虽然输出结果还是“深圳大学“，但是此时是因为 bar 函数的 this 默认绑定到了全局对象上，所以会找到外边定义的 myName。如果把 `var myName = '深圳大学';` 注释掉，就会输出 undefined。
 
 :lock: 3. 请问变量 a 会被 GC 回收么，为什么？
 
@@ -1114,6 +1126,104 @@ function test() {
 test()();
 ```
 
+> 答案解析
+
+- 在外部用 var 声明的变量会被添加到全局对象 **Global** 中，比如 var b = 30；那么它就永远不会被回收。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest2.png 'jstest')
+
+- 如果是用 let 或 const 声明的变量，就不会挂载到全局对象上，而是放在 **Script** 对象里面。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest3.png 'jstest')
+
+- 在 `var a = 'yideng';` 下面再加一句 debugger，可以看到变量 a 被放到了 **Local** 对象里面。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest4.png 'jstest')
+
+此时点击下一步，发现变量 a 没了。说明变量 a 并没有被引用，所以被内存回收了。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest5.png 'jstest')
+
+- 如果在内层函数中加 `return a;`，一开始 a 还是在 **Local** 对象里面，但是当我点击下一步的时候，会发现它被放到了 **Closure(test)** 对象里面，这个就是闭包。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest6.png 'jstest')
+
+一旦变量被闭包所引用，内存就无法回收它了。所以这也说明了一点，并不是看到闭包就说变量一定不会被回收，而是还要看看这个变量是否有被闭包引用，如果没被引用，还是照样会被回收。
+
+- 如何看一个变量是否还在内存中。
+
+打开 Memory 面板。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest7.png 'jstest')
+
+然后点击左上角的圆形按钮进行录制，就可以看到当前页面的所有变量，可以在上方搜索框中搜索类名。如果有发生内存泄漏，相应的部分会变黄色。Memory 一般是配合 Performance 一起使用的。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest8.png 'jstest')
+
+- 下面这段代码在内存中可以看到 Yideng 有两个引用。
+
+```js
+function Yideng(name) {
+  this.name = name;
+}
+let student1 = new Yideng();
+let student2 = new Yideng();
+```
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest9.png 'jstest')
+
+当我们把 student1 置为 null 时，重新生成快照，就会发现对 Yideng 的引用就只剩下一个了，说明 student1 已经被回收了。快照是可以保存的。不过有时当我们把一个变量置为 null 时，v8 的 GC 不是马上就会把变量回收的，而是会有一定的延迟。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest10.png 'jstest')
+
+- 下面这段代码中，尽管 p1 置为 null，但是这只是把 YidengFactory 生成的实例回收了。因为闭包，内部的 student 还是存在着对外部 Yideng 的引用。除非我们手动在内部加上 `student = null;` 才会被回收，这是最关键的。
+
+```js
+function Yideng(name) {
+  this.name = name;
+}
+// 闭包会存在堆区，方便复用
+let YidengFactory = function (name) {
+  let student = new Yideng(name);
+    return function () {
+      console.log(student);
+    };
+};
+let p1 = YidengFactory('shenzhen');
+p1();
+p1 = null;
+```
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest11.png 'jstest')
+
+注意到此时 Yideng 虽然还在，但是它的 Distance 已经变成了 “—”。相当于它被单独分离开了。
+
+- eval 会把变量 a 塞到全局的词法作用域中，这里还会产生闭包，因为引擎不知道 eval 里面会执行什么。所以这道题里的变量 a 不会被 GC 回收。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest12.png 'jstest')
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest13.png 'jstest')
+
+这个问题的解决方法就是把 eval 改成：
+
+```js
+window.eval('');
+```
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest14.png 'jstest')
+
+- webpack 里面用的就全是 eval。webpack 之所以这么做，是为了生成代码速度快。
+
+- with 也有坑。比如下面这段代码直接在全局创建了一个变量 b。但是 with 现在还是有人在用的，比如 vue 的源码中就用到了。
+
+```js
+var obj = { a: 30 };
+with (obj) {
+  b = 30;
+}
+console.log(b);
+```
+
 :lock: 4. 请写出以下代码的输出值，并解释原因。
 
 ```js
@@ -1121,14 +1231,85 @@ Object.prototype.a = 'a';
 Function.prototype.a = 'a1';
 function Person() {};
 var yideng = new Person();
-console.log(Person.a);
-console.log(yideng.a);
-console.log(1..a);
-console.log(1.a);
-console.log(yideng.__proto__.__proto__.constructor.constructor.constructor);
+console.log(Person.a);  // a1
+console.log(yideng.a);  // a
+console.log(1..a);      // a
+console.log(1.a);       // 报错
+console.log(yideng.__proto__.__proto__.constructor.constructor.constructor); // ƒ Function() { [native code] }
+
+console.log((1).a);     // a
+const x = new Number(1);
+console.log(x.a);       // a
 ```
 
 Object.prototype 和 Function.prototype 打印的内容差距很大的原因是什么？
+
+> 答案解析
+
+- 关于原型链有下面这张典型的图。
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest15.jpeg 'jstest')
+
+- 对于第一个结果，寻值的过程是这样的：**function Foo() -> `__proto__` -> Function.prototype**，因为 Function.prototype 上有个 a 的值是 a1，所以最后的结果就是 a1。
+
+- 对于第二个结果，寻值的过程是这样的：**new Foo() -> `__proto__` -> Foo.prototype -> `__proto__` -> Object.prototype**，因为 Object.prototype 上有个 a 的值是 a，所以最后的结果就是 a。
+
+- 对于第三个结果，是因为 `1.` 是一个对象，跟 `(1)` 是一样的，所以最终找到了 Object.prototype 上的 a。但是 `typeof 1.` 的值是 number。
+
+- 对于第四个结果，因为 1 不是对象，所以报错了。
+
+- 经常在很多库里可能会看到类似下面的代码，这是库为了缩小代码体积而使用的一种简便写法。而且括号里面的东西，在加载时会提前执行。
+
+```js
+// 总是会返回后一个值
+(20, 30)   // 30
+(20, null) // null
+(30, 20)   // 20
+```
+
+假如有个 obj.a 的值是 30，为了让它拿到值之后可以做下面的事，那么可能就会这么写：
+
+```js
+(obj.a).x
+// 相当于
+(30).x
+// 但是不能是下面这样的，因为 30 不是一个对象
+30.x 
+```
+
+- 下面这段代码的输出结果也值得注意下。
+
+```js
+Object.prototype.name = 'shenzhen';
+function test() {}
+test.name; // test
+1..name;   // shezhen
+```
+
+输出结果是 test，这是因为函数的 name 属性是不能改的。
+
+- 对于第五个结果，可以对照那张原型链的图，一层一层打印下。
+
+```js
+console.log(yideng.__proto__);
+/*
+  {constructor: ƒ}
+  constructor: ƒ Person()
+  __proto__: Object
+*/
+
+console.log(yideng.__proto__.__proto__);
+// {a: "a", constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, …}
+
+console.log(yideng.__proto__.__proto__.constructor);
+// ƒ Object() { [native code] }
+
+console.log(yideng.__proto__.__proto__.constructor.constructor);
+// ƒ Function() { [native code] }
+
+console.log(yideng.__proto__.__proto__.constructor.constructor.constructor);
+// ƒ Function() { [native code] }
+```
 
 :lock: 5. 请写出如下代码执行结果。
 
@@ -1136,11 +1317,53 @@ Object.prototype 和 Function.prototype 打印的内容差距很大的原因是�
 var a = {}, b = { key: 'b' }, c = { key: 'c' };
 a[b] = 123;
 a[c] = 456;
-console.log(a[b]);
-console.log(Symbol(b) == Symbol(b));
+console.log(a[b]);                           // 456
+console.log(Symbol(b) == Symbol(b));         // false
+console.log(Symbol.for(b) == Symbol.for(b)); // true
+
+console.log(a);
+/*
+  {[object Object]: 456}
+  [object Object]: 456
+  __proto__: Object
+*/
 ```
 
+> 答案解析
+
+- 之所以输出 456，是因为键值是对象时，现代浏览器是把它转成了 [object Object]，所以 a[b] 和 a[c] 其实都是 a[[object Object]]，因此最后输出的就是 456。
+
+- Symbol 是唯一值，但是 Symbol.for 不是。
+
 :lock: 6. 请写出你了解的 ES6 的元编程。
+
+> 答案解析
+
+- 从 ECMAScript 2015 开始，JavaSCript 获得了 Proxy 和 Reflect 对象的支持，**允许你拦截并定义基本语言操作的自定义行为**（例如，属性查找，赋值，枚举，函数调用等）。借助这两个对象，可以在 JavaScript 元级别进行编程。
+
+- ES6 的元编程有：[Proxy](https://es6.ruanyifeng.com/#docs/proxy) 和 [Reflect](https://es6.ruanyifeng.com/#docs/reflect)。
+
+- [Symbol.toPrimitive](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Symbol/toPrimitive) 是元编程的一种方式。
+
+```js
+var shenzhen = {
+  [Symbol.toPrimitive]: ((i) => () => ++i)(0); 
+}
+if (shenzhen == 1 && shenzhen == 2 && shenzhen == 3) {
+  console.log('深圳'); // 深圳
+}
+```
+
+- 浏览器留了一些底层属性可以给你用，这也属于一种元编程，比如：
+
+```js
+// 开启尾递归调用优化
+function test(i) {
+  return test(i--, i);
+  TCO_ENABLED = true;
+}
+test(5);
+```
 
 :lock: 7. 请按照下方要求作答，并解释原理。请解释下 babel 编译后的 async 原理。
 
@@ -1150,9 +1373,87 @@ let yideng = async() => {
   a = a + await 10;
   console.log(a);
 }
-yideng();
-console.log(++a);
+yideng(); // 10
+console.log(++a); // 1
+// 先输出 1，再输出 10
 ```
+
+> 答案解析
+
+- async 本身不是异步的，await 才是，await 后面的代码会等待 promise.then 执行后才执行。
+
+- 先写一个简单的 generator。
+
+```js
+function* genDemo() {
+  console.log('第一段执行逻辑');
+  yield 'Generator2 ';
+  console.log('第二段执行逻辑');
+  yield 'Generator2 ';
+  console.log('第三段执行逻辑');
+  yield 'Generator2 ';
+  console.log('执行完毕');
+  return 'Generator2';
+}
+console.log('main 0');
+let gen = genDemo();
+console.log(gen.next().value);
+console.log('main 1');
+
+console.log('--------------');
+
+console.log(gen.next().value);
+console.log('main 2');
+console.log(gen.next().value);
+console.log('main 3');
+console.log(gen.next().value);
+console.log('main 4');
+```
+
+通过这段代码的结果，我们得明白以下几点：
+
+（1）代码不是一次性执行完的，而是和全局代码交替执行。可以暂停，也可以恢复。
+
+（2）协程比线程更轻量，它跑在线程上，并且一个线程可以有多个协程。
+
+（3）线程上同时只执行一个协程。如果协程 A 在运行，此时想启动协程 B，那么就需要把控制权从 A 移交给 B，A 先暂停。如果协程 A 打开 协程 B，那么 A 就是 B 的父协程。
+
+（4）之所以用协程进行管理，是因为协程不受操作系统管理，是由程序控制的。当我们调用 gen.next() 时，引擎会保存父协程的调用栈信息。这也叫做“锁变量”。
+
+以上这几点也是 async ... await 的执行原理。
+
+- 下面是跟协程相关的几张图。
+
+（1）父协程
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest16.png 'jstest')
+
+（2）协程执行流程图
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest17.png 'jstest')
+
+（3）async / await 执行过程
+
+![jstest](../.vuepress/public/assets/image/javascript/jstest18.png 'jstest')
+
+- [async 函数的实现原理](https://es6.ruanyifeng.com/#docs/async#async-%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)，面试中也经常会让手写 async/await，核心就是实现 spawn 函数。
+
+- 这道题中，`a = a + await 10;` **这里的 a 其实是被保存起来了（锁变量）**，所以相当于是 `a = 0 + 10`，结果是输出10。如果把这道题稍微改一下由不一样了。
+
+```js
+let a = 0;
+let yideng = async() => {
+  a = await 10 + a;
+  console.log(a);
+}
+yideng(); // 11
+console.log(++a); // 1
+// 先输出 1，再输出 11
+```
+
+这是因为 **await 之前的变量才会被锁定**。
+
+- 可以把代码贴到 [babel 中文网](https://www.babeljs.cn/) 上看看编译成什么样的。
 
 加强一下
 
@@ -1167,6 +1468,7 @@ async function async2() {
 }
 async1();
 console.log(4);
+// 这题简单，依次输出：1 2 4 3
 ```
 
 :lock: 8. 请问点击 `<button id="test"></button>` 会有反应么？为什么？能解决么？
@@ -1182,6 +1484,12 @@ while (true) {
   console.log(Math.random());
 }
 ```
+
+> 答案解析
+
+- 爆栈是指内存空间不够了，用完了；死循环是指占着主线程不放，内存空间还是有的。
+
+- 这题的解决方法就是用多线程。在 web worker 没出现之前，很多人都是用 [Concurrent.Thread.js](https://www.cnblogs.com/woodk/articles/5199536.html) 来模拟多线程的。
 
 :lock: 9. 请先书写如下代码执行结果，并用 ES5 实现 ES6 PromiseA+ 规范的代码，同时你能解释下如何使用 Promise 完成事务的操作么。
 
@@ -1200,7 +1508,14 @@ const pro = new Promise((resolve, reject) => {
 })
 pro.then(res => console.log(res));
 console.log('end');
+// 依次输出：2 yideng end 3 4
 ```
+
+> 答案解析
+
+- 创建 promise 的时候是同步的，promise.then 才是异步的。
+
+- promise 的状态一旦改变，就结束了。所以 setTimeout 里面的 resolve 是没用的。
 
 :lock: 10. 请写出如下代码的输出值，并解释为什么。
 
@@ -1221,6 +1536,10 @@ for (var i = 0; i < 3; i++) {
 console.log(s[0]);
 ```
 
+> 答案解析
+
+- 这道题其实是用 js 模拟指针移动，最后的输出结果是一棵树。
+
 :lock: 请描述你理解的函数式编程，并书写如下代码的结果。那么你能使用 Zone + RX 写出一段 FRP 的代码么。
 
 ```js
@@ -1233,3 +1552,9 @@ Container.prototype.map = function(f) {
 }
 Container.of(3).map(x => x + 1).map(x => 'Result is ' + x);
 ```
+
+- FRP 就是响应式函数式编程。
+
+- [Zone.js](https://github.com/angular/angular/tree/master/packages/zone.js)
+
+- [Rx.js](https://cn.rx.js.org/)
