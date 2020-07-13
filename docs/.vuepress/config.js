@@ -91,6 +91,13 @@ module.exports = {
         ]
       },
       {
+        title: '前端工程化',
+        collapsable: false,
+        children: [
+          { title: 'Java 环境搭建和 SonarQube 安装', path: '/engineering/sonar.md' }
+        ]
+      },
+      {
         title: '算法学习总结',
         collapsable: false,
         children: [
