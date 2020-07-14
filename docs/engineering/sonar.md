@@ -122,3 +122,73 @@ sudo chown linnan /opt/sonarqube-8.4.0.35506/temp/conf/es/elasticsearch.yml
 ![sonar](../.vuepress/public/assets/image/engineering/sonar14.png 'sonar')
 
 可以点击右上角进行登录，默认的用户名和密码都是 admin。
+
+**5. 使用 SonarQube**
+
+（1）登录完成后，我们需要先安装一个中文插件 Chinese Pack，安装完成后需要重启服务器，就可以看到界面是中文的了。
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar15.png 'sonar')
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar16.png 'sonar')
+
+（2）接着创建一个新项目。
+
+- 设置项目名称。
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar17.png 'sonar')
+
+- 创建一个令牌（token），给客户端使用。
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar18.png 'sonar')
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar19.png 'sonar')
+
+- 配置项目。
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar20.png 'sonar')
+
+点击图里的下载按钮下载扫描器（SonarScanner），然后在项目目录下执行图里的命令。
+
+有一点需要注意的是，执行以上命令的配置文件最好放在源代码的根路径下。
+
+到此，服务端的配置就完成了。
+
+**6. 下载安装 SonarScanner**
+
+[SonarScanner](https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/) 是一个命令行工具。
+
+（1）我们需要在本机上有一个项目，然后在这个项目的根目录下创建一个 `sonar-project.properties` 文件，复制上面的命令到这个文件中。
+
+（2）执行以下命令，就会自动扫描我们的项目。扫描完成后就会生成关于项目的一些报表。在 SonarQube 的项目页面里可以看到。
+
+```shell
+sonar-scanner
+```
+
+（3）如果想知道扫描器是以什么规则去扫描代码的，可以在代码规则页面里查看。我们的项目是用什么语言，就在点击左侧对应的语言查看相关的规则。规则也可以自己根据公司的规范进行设定。而且点击每条规则之后还会有详细说明，这个说明文档也可以供我们学习。
+
+**7. SonarQube 的价值所在**
+
+- SonarQube 看起来好像跟 ESlint 的功能差不多，只不过是多了个服务器。但是，SonarQube 真正值钱的地方在于它的处理流程，这个系统能够接入到 Jenkins，并且扫描出问题之后还能接入到缺陷管理相关的系统里，比如：Jira。它是代码质量管理流程中很重要的一个环节。
+
+**8. SonarQube 的处理流程**
+
+- SonarQube 的架构值得我们学习，它有一个服务器 server，然后在本机上有一个扫描器 scanner。处理流程是这样的：
+
+- 首先 scanner 通过 token 登录到 server 上，然后把代码规则拉下来，之后 scanner 再去扫描项目代码，扫描检查完项目代码之后，先在本机上生成一份检查报告，再把这份报告上传到服务器上。因此，要记住一点，扫描器 scanner 不能离开服务器 server。
+
+**9. SonarQube 配置数据库**
+
+- SonarQube 下载下来之后，需要配置数据库。不过，不配置也没关系，但是自带的数据库性能不高，用于学习和处理一些小项目是没问题的，但是处理大项目时可能就撑不住了。数据库在 sonar.properties 文件中配置，这个文件位于 sonarqube-8.4.0.35506 目录下的 conf 目录里。需要配置的是下面这些：
+
+  ```shell
+  # 数据库名称
+  sonar.jdbc.username=...
+  # 数据库密码
+  sonar.jdbc.password=...
+  # 数据库连接串
+  sonar.jdbc.url=... 
+  ```
+
+- 还要注意，官方的 SonarQube 不支持 MySQL 数据库，默认支持的数据库是 PostgreSQL，这是一个开源的数据库。此外，还支持 ms SQl（微软的 SQLServer 数据库服务器）和 Qracle。如果想用 MySQL 的话，还得去下载 [MySQL Connector/J](https://dev.mysql.com/downloads/)。
+
