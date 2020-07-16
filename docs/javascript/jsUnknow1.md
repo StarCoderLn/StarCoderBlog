@@ -3268,11 +3268,11 @@ myObject.b; // undefined
 
 1. 如果已经存在这个属性，[[Put]] 算法大致会检查下面这些内容。
 
-- 属性是否是访问描述符？如果是并且存在 setter 就调用 setter。
+- **属性是否是访问描述符？如果是并且存在 setter 就调用 setter**。
 
-- 属性的数据描述符中 writable 是否是 false？如果是，在非严格模式下默认失败，在严格模式下抛出 TypeError 异常。
+- **属性的数据描述符中 writable 是否是 false？如果是，在非严格模式下默认失败，在严格模式下抛出 TypeError 异常**。
 
-- 如果都不是，将该值设置为属性的值。
+- **如果都不是，将该值设置为属性的值**。
 
 2. 如果对象中不存在这个属性，[[Put]] 操作会更加复杂。
 
@@ -3831,3 +3831,92 @@ console.log(Another.count); // 1（count 不是共享状态）
 7. 此外，显式混入实际上无法完全模拟类的复制行为，因为对象（和函数！别忘了函数也是对象）只能复制引用，无法复制被引用的对象或者函数本身。忽视这一点会导致许多问题。
 
 总地来说，在 JavaScript 中模拟类是得不偿失的，虽然能解决当前的问题，但是可能会埋下更多的隐患。
+
+## :books: 原型
+
+### :blue_book: [[Prototype]]
+
+JavaScript 中的对象有一个特殊的 [[Prototype]] 内置属性，**其实就是对于其他对象的引用**。几乎所有的对象在创建时 [[Prototype]] 属性都会被赋予一个非空的值。不过，对象的 [[Prototype]] 链接可以为空，比较少见。
+
+```js
+var myObject = {
+  a: 2
+}
+myObject.a; // 2
+```
+
+通过前面的学习我们知道，当你试图引用对象的属性时会触发 [[Get]] 操作，比如 myObject.a。对于默认的 [[Get]] 操作来说，
+
+- **第一步是检查对象本身是否有这个属性，如果有的话就使用它**。
+
+- **如果无法在对象本身找到需要的属性，就会继续访问对象的 [[Prototype]] 链**。
+
+```js
+var anotherObject = {
+  a: 2
+}
+
+// 创建一个关联到 anotherObject 的对象
+var myObject = Object.create(anotherObject);
+
+myObject.a; // 2
+```
+
+尽管 myObject.a 并不存在，但属性访问仍然成功地（在 anotherObject 中）找到了值 2。如果 anotherObject 中也找不到 a 并且 [[Prototype]] 链不为空的话，就会继续查找下去。
+
+这个过程会持续到找到匹配的属性名或者查找完整条 [[Prototype]] 链。如果是后者的话，[[Get]] 操作的返回值是 **undefined**。
+
+使用 for..in 遍历对象时原理和查找 [[Prototype]] 链类似，任何可以通过原型链访问到 （并且是 enumerable）的属性都会被枚举。
+
+使用 in 操作符来检查属性在对象中是否存在时，同样会查找对象的整条原型链（无论属性是否可枚举）。
+
+```js
+var anotherObject = {
+  a: 2
+}
+
+// 创建一个关联到 anotherObject 的对象
+var myObject = Object.create(anotherObject);
+
+for (var k in myObject) {
+  console.log('found:' + k); // found: 2
+}
+
+('a' in myObject); // true
+```
+
+因此，当通过各种语法进行属性查找时都会查找 [[Prototype]] 链，直到找到属性或者查找完整条原型链。
+
+:gem: **1. Object.prototype**
+
+所有普通的 [[Prototype]] 链最终都会指向内置的 Object.prototype。
+
+:gem: **2. 属性设置和屏蔽**
+
+给一个对象设置属性并不仅仅是添加一个新属性或者修改已有的属性值。
+
+```js
+myObject.foo = 'bar';
+```
+
+:bell: **对于上面这条语句，完整的过程是这样的：**
+
+- 如果 myObject 对象中包含名为 foo 的普通数据访问属性，这条赋值语句只会修改已有的属性值。
+
+- 如果 foo 不是直接存在于 myObject 中，[[Prototype]] 链就会被遍历，类似 [[Get]] 操作。如果原型链上找不到 foo，foo 就会被直接添加到 myObject 上。
+
+- 但是，如果 foo 存在于**原型链上层**，赋值语句 myObject.foo = "bar" 的行为就会有些不同。
+
+- 如果属性名 foo 既出现在 myObject 中也出现在 myObject 的 [[Prototype]] 链上层，那么就会发生屏蔽。**myObject 中包含的 foo 属性会屏蔽原型链上层的所有 foo 属性，因为 myObject.foo 总是会选择原型链中最底层的 foo 属性**。
+
+:bell: **如果 foo 不直接存在于 myObject 中而是存在于原型链上层时，会出现以下三种情况：**
+
+- 如果在 [[Prototype]] 链上层存在名为 foo 的普通数据访问属性并且没有被标记为只读（writable:false），那就会直接在 myObject 中添加一个名为 foo 的新属性，它是**屏蔽属性**。
+
+- 如果在 [[Prototype]] 链上层存在 foo，但是它被标记为只读（writable:false），那么无法修改已有属性或者在 myObject 上创建屏蔽属性。如果运行在严格模式下，代码会抛出一个错误。否则，这条赋值语句会被忽略。总之，不会发生屏蔽。
+
+- 如果在 [[Prototype]] 链上层存在 foo 并且它是一个 setter，那就一定会调用这个 setter。foo 不会被添加到（或者说屏蔽于）myObject，也不会重新定义 foo 这个 setter。
+
+大多数开发者都认为如果向 [[Prototype]] 链上层已经存在的属性（[[Put]]）赋值，就一定会触发屏蔽，但是如你所见，三种情况中只有一种（第一种）是这样的。
+
+**如果你希望在第二种和第三种情况下也屏蔽 foo，那就不能使用 = 操作符来赋值，而是使用 Object.defineProperty(..)来向 myObject 添加 foo**。
