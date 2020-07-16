@@ -955,27 +955,86 @@ yideng.method(fn, 1) // 10 2
 
 ## 基础测试 B
 
-**1. 手写一个 new 操作符。**
+:lock: **1. 手写一个 new 操作符。**
 
-**2. 手写一个 JSON.stringfy 和 JSON.parse。**
+> 答案解析
 
-**3. 手写一个 call 或 apply。**
+new 操作符做了以下这些事：
 
-**4. 手写一个 Function.bind。**
+（1）它创建了一个全新的对象。
 
-**5. 手写防抖（Debouncing）和节流（Throttling）。**
+（2）它会被执行 [[Prototype]]（也就是 `__proto__`）链接。
 
-**6. 手写一个 JS 深拷贝（由浅入深多种写法）。**
+（3）它会使 this 指向新创建的对象。
 
-**7. 手写一个 instanceOf 原理。**
+（4）通过 new 创建的每个对象最终都会被 [[Prototype]] 链接到这个函数的 prototype 对象上。
 
-**8. 手写一个 map 和 reduce。**
+（5）如果函数没有返回对象类型 Object（包含 Function，Array，Date，RegExg，Error），那么 new 表达式中的函数调用将返回该对象引用。
 
-**9. 手写实现拖拽。**
+```js
+// 版本一
+function myNew(func) {
+  return function() {
+    // 创建一个新对象并将其隐式原型指向构造函数原型
+    let obj = {
+      __proto__: func.prototype
+    }
+    // 执行构造函数
+    func.call(obj, ...arguments)
+    // 返回该对象
+    return obj
+  }
+}
 
-**10. 使用 setTimeout 模拟 setInterval。**
+function person(name, age) {
+  this.name = name
+  this.age = age
+}
+let obj = myNew(person)('lin', 18)
+console.log(obj) // person {name: "lin", age: 18}
+```
 
-**11. 手写实现 Object.create 的基本原理。**
+```js
+// 版本2
+function myNew(func) {
+  let res = {}
+  if (func.prototype !== null) {
+    res.__proto__ = func.prototype
+  }
+  let ret = func.apply(res, Array.prototype.slice.call(arguments, 1))
+  if ((typeof ret === 'object' || typeof ret === 'function') && ret !== null) {
+    return ret
+  }
+  return res
+}
+
+function person(name, age) {
+  this.name = name
+  this.age = age
+}
+let obj = myNew(person, 'lin', 18)
+console.log(obj) // person {name: "lin", age: 18}
+```
+
+:lock: **2. 手写一个 JSON.stringfy 和 JSON.parse。**
+
+:lock: **3. 手写一个 call 或 apply。**
+
+:lock: **4. 手写一个 Function.bind。**
+
+:lock: **5. 手写防抖（Debouncing）和节流（Throttling）。**
+
+:lock: **6. 手写一个 JS 深拷贝（由浅入深多种写法）。**
+
+:lock: **7. 手写一个 instanceOf 原理。**
+
+:lock: **8. 手写一个 map 和 reduce。**
+
+:lock: **9. 手写实现拖拽。**
+
+:lock: **10. 使用 setTimeout 模拟 setInterval。**
+
+:lock: **11. 手写实现 Object.create 的基本原理。**
 
 ## 基础测试 E
 
