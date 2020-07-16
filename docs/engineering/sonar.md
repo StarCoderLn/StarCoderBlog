@@ -139,6 +139,8 @@ sudo chown linnan /opt/sonarqube-8.4.0.35506/temp/conf/es/elasticsearch.yml
 
 - 创建一个令牌（token），给客户端使用。
 
+  **我创建的令牌是：tuoniaodan_token:8d6a0260d4dda3009a652ac176062ef5ef11bfd1。**
+
 ![sonar](../.vuepress/public/assets/image/engineering/sonar18.png 'sonar')
 
 ![sonar](../.vuepress/public/assets/image/engineering/sonar19.png 'sonar')
@@ -147,29 +149,80 @@ sudo chown linnan /opt/sonarqube-8.4.0.35506/temp/conf/es/elasticsearch.yml
 
 ![sonar](../.vuepress/public/assets/image/engineering/sonar20.png 'sonar')
 
-点击图里的下载按钮下载扫描器（SonarScanner），然后在项目目录下执行图里的命令。
-
-有一点需要注意的是，执行以上命令的配置文件最好放在源代码的根路径下。
+点击图里的下载按钮可以下载扫描器（SonarScanner）。
 
 到此，服务端的配置就完成了。
 
-**6. 下载安装 SonarScanner**
+**6. SonarScanner 的安装与使用**
 
 [SonarScanner](https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/) 是一个命令行工具。
 
-（1）我们需要在本机上有一个项目，然后在这个项目的根目录下创建一个 `sonar-project.properties` 文件，复制上面的命令到这个文件中。
+（1）首先下载 SonarScanner 的安装包，然后解压。可以使用 unzip 命令解压，也可以直接右键解压。
 
-（2）执行以下命令，就会自动扫描我们的项目。扫描完成后就会生成关于项目的一些报表。在 SonarQube 的项目页面里可以看到。
+（2）配置环境变量。
+
+:bell: **这里要注意，对于 mac 默认的终端 bash，配置环境变量的文件是 .bash_profile，但是，我使用的终端是 zsh，它的环境变量配置文件是 .zshrc**。
+
+- 首先进入到 .zshrc 文件中
+
+```shell
+vi .zshrc
+
+# 或者
+
+open -e .zshrc
+```
+
+- 然后在 .zshrc 文件中加上以下变量。SONAR_SCANNER_HOME 是一个变量名，名字可以随意命名。它的值就是 SonarScanner 解压后安装包的位置。因为我们需要把 SonarScanner 的 bin 目录配置到环境变量中。
+
+```shell
+export SONAR_SCANNER_HOME=/Users/linnan/Desktop/projects/sonar-scanner-4.4.0.2170-macosx
+export PATH=$PATH:$SONAR_SCANNER_HOME/bin
+```
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar21.png 'sonar')
+
+- 配置好之后，还需要执行命令 `source .zshrc` 来使环境变量生效。最后在终端执行 `snoar-scanner -h` 命令，如果看到以下信息就说明安装成功了。
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar22.png 'sonar')
+
+（3）安装好 SonarScanner 之后，我们就可以配合 SonarQube 来扫描项目了。首先我们需要在本机上有一个项目，然后在这个项目的根目录下创建一个 `sonar-project.properties` 文件，并在文件中添加以下命令。
+
+```shell
+# must be unique in a given SonarQube instance
+sonar.projectKey=my:project
+
+# --- optional properties ---
+
+# defaults to project key
+sonar.projectName=sell
+# defaults to 'not provided'
+#sonar.projectVersion=1.0
+ 
+# Path is relative to the sonar-project.properties file. Defaults to .
+sonar.sources=src
+ 
+# Encoding of the source code. Default is default system encoding
+#sonar.sourceEncoding=UTF-8
+```
+
+其中 sonar.projectKey 是一个唯一的标识，随便给个值就行，sonar.projectName 就是你的项目名称，sonar.sources 是项目中源代码所在的目录。
+
+（4）配置好以上步骤之后，启动 SonarQube。在项目里执行以下命令，就会自动扫描我们的项目。扫描完成后就会生成关于项目的一些报表。在 SonarQube 的项目页面里可以看到。
 
 ```shell
 sonar-scanner
 ```
 
-（3）如果想知道扫描器是以什么规则去扫描代码的，可以在代码规则页面里查看。我们的项目是用什么语言，就在点击左侧对应的语言查看相关的规则。规则也可以自己根据公司的规范进行设定。而且点击每条规则之后还会有详细说明，这个说明文档也可以供我们学习。
+![sonar](../.vuepress/public/assets/image/engineering/sonar23.png 'sonar')
+
+![sonar](../.vuepress/public/assets/image/engineering/sonar24.png 'sonar')
+
+（5）如果想知道扫描器是以什么规则去扫描代码的，可以在代码规则页面里查看。我们的项目是用什么语言，就在点击左侧对应的语言查看相关的规则。规则也可以自己根据公司的规范进行设定。而且点击每条规则之后还会有详细说明，这个说明文档也可以供我们学习。
 
 **7. SonarQube 的价值所在**
 
-- SonarQube 看起来好像跟 ESlint 的功能差不多，只不过是多了个服务器。但是，SonarQube 真正值钱的地方在于它的处理流程，这个系统能够接入到 Jenkins，并且扫描出问题之后还能接入到缺陷管理相关的系统里，比如：Jira。它是代码质量管理流程中很重要的一个环节。
+- SonarQube 看起来好像跟 ESlint 的功能差不多，只不过是多了个服务器。**但是，SonarQube 真正值钱的地方在于它的处理流程，这个系统能够接入到 Jenkins，并且扫描出问题之后还能接入到缺陷管理相关的系统里，比如：Jira。它是代码质量管理流程中很重要的一个环节**。
 
 **8. SonarQube 的处理流程**
 
@@ -190,5 +243,5 @@ sonar-scanner
   sonar.jdbc.url=... 
   ```
 
-- 还要注意，官方的 SonarQube 不支持 MySQL 数据库，默认支持的数据库是 PostgreSQL，这是一个开源的数据库。此外，还支持 ms SQl（微软的 SQLServer 数据库服务器）和 Qracle。如果想用 MySQL 的话，还得去下载 [MySQL Connector/J](https://dev.mysql.com/downloads/)。
+- 还要注意，官方的 SonarQube 不支持 MySQL 数据库，默认支持的数据库是 PostgreSQL，这是一个开源的数据库。此外，还支持 ms SQL（微软的 SQLServer 数据库服务器）和 Qracle。如果想用 MySQL 的话，还得去下载 [MySQL Connector/J](https://dev.mysql.com/downloads/)。
 
