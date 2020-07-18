@@ -782,5 +782,435 @@ System.register([], function (_export, _context) {
 
   浏览器对 module 和 nomodule 的支持情况可在 [caniuse](https://www.caniuse.com/) 上查看。
 
+## 使用函数式编程进行稀释（节流）
 
+1. 参考 [Underscore.JS](http://underscorejs.org/) 的 [UMD (Development)](http://underscorejs.org/underscore.js) 源码。在 assets/scripts 下新建一个 my_lib.js 文件，然后把 UMD (Development) 源码复制粘贴到这里。
 
+2. 接下来就是通过分析这份源码，实现自己需要的库 my_lib.js。
+
+```js
+(function () {
+    var root = typeof self == 'object' && self.self === self && self ||
+            typeof global == 'object' && global.global === global && global ||
+            Function('return this')() ||
+            {};
+    var ArrayProto = Array.prototype;
+    var push = ArrayProto.push;
+
+    function _(obj) {
+        // if (obj instanceof _) return obj;
+        if (!(this instanceof _)) return new _(obj);
+        this._wrapped = obj; // 初始化的构造函数
+    }
+
+    function map (obj, iteratee) {
+        // 第二个参数一定得是函数才能往下执行，不然就违背了 map 的设计原则了
+        if (isFunction(iteratee)) {
+            // 这里自己再实现具体的 map 逻辑就行了，只要两种方式都能拿到参数就证明没问题了
+            console.log('第一个参数：', obj);
+            console.log('第二个参数：', iteratee);
+        } else {
+            throw new Error('参数错误');
+        }
+    };
+
+    function throttle (fn, wait = 500) { // 节流函数
+        let timer;
+        return function (...args) {
+            if (timer == null) {
+                timer = setTimeout(() => {
+                    timer = null;
+                }, wait);
+                return fn.apply(this, args);
+            }
+        }
+    }
+    
+    function each (obj, callback) {
+        if (Array.isArray(obj)) {
+            for (let item of obj) {
+                callback && callback.call(_, item);
+            }
+        }
+    }
+
+    function isFunction (obj) {
+        return typeof obj === 'function' || false;
+    }
+
+    function functions (obj) {
+        var names = [];
+        for (let key in obj ) {
+            if (isFunction(obj[key])) {
+                names.push(key);
+            }
+        }
+        return names;
+    }
+
+    // 想暴露出去的方法放到 allExports 对象里就行了
+    var allExports = {
+        isFunction,
+        map,
+        throttle
+    };
+
+    // mixin 其实只做两件事
+    // 判断 _.map = function () {}
+    // 判断 _.prototype.map = function () {}
+    function mixin (obj) {
+        each(functions(obj), function(name) {
+            var func = _[name] = obj[name];
+            _.prototype[name] = function() {
+                var args = [this._wrapped];
+                push.apply(args, arguments); // 合并参数
+                return func.apply(_, args);
+            };
+        });
+    }
+
+    mixin(allExports);
+
+    root._ = _;
+})()
+```
+
+## 容错处理
+
+1. 新建一个 middlewares 文件夹，并在 middlewares 下新建 errorHandler.js 文件。
+
+2. 要想做容错处理，首先得明白 koa 的执行顺序。它的执行顺序是这样的：
+
+**先执行 await next(); 前面的代码，然后再倒着执行 await next(); 后面的代码。**
+
+所以这段代码的执行顺序就应该是：1 -> 3 -> 5 -> 4 -> 2
+
+```js
+const Koa = require('koa');
+const app = new Koa();
+
+// logger
+
+app.use(async (ctx, next) => {
+  // 1
+  await next();
+  // 2
+});
+
+// x-response-time
+
+app.use(async (ctx, next) => {
+  // 3
+  await next();
+  // 4
+});
+
+// response
+
+app.use(async ctx => {
+  // 5
+  ctx.body = 'Hello World';
+});
+
+app.listen(3000);
+```
+
+3. 编写 errorHandler.js，先做一个 404 处理。
+
+**注意，即使是404和500，返回的状态码也应该是200，因为这是为了防止网站被占权，如果页面上太多404和500，搜索引擎会把网页的排名挪后。**
+
+之前是需要自己手动设置状态码为200的，但是现在 koa 优化了这点，只要有返回内容，也就是 ctx.body 有内容，就会自动将404转换为200.
+
+```js
+class errorHandler {
+    static error(app, logger) {
+        app.use(async(ctx, next) => {
+            await next();
+            if (ctx.status !== 404) {
+                return;
+            }
+            ctx.status = 200;
+            ctx.body = '404';
+        })
+    }
+}
+module.exports = errorHandler;
+```
+
+然后在 app.js 中使用它，**注意在 app.js 中 errorHandler 的放置位置是有讲究的**。
+
+```js
+const Koa = require('koa');
+const render = require('koa-swig');
+const serve = require('koa-static');
+const co = require('co');
+const errorHandler = require('./middlewares/errorHandler');
+// const { historyApiFallback } = require('koa2-connect-history-api-fallback');
+const { port, viewDir, staticDir, memoryFlag } = require('./config');
+const app = new Koa();
+
+// app.use(historyApiFallback({ index: '/', whiteList: ['/api'] })); // 一定要放在 router 之前
+
+app.use(serve(staticDir));
+
+app.context.render = co.wrap(render({
+    root: viewDir,
+    autoescape: true,
+    cache: memoryFlag,
+    ext: 'html',
+    varControls: ['[[', ']]'],
+    writeBody: false
+}));
+
+errorHandler.error(app);
+
+require('./controllers')(app);
+
+app.listen(port, () => {
+    console.log('服务启动成功', port);
+})
+```
+
+此时，如果在浏览器中访问一个不存在的路径，就会看到页面上显示 404。
+
+![nodejsyii](../.vuepress/public/assets/image/nodejs/nodejsyii12.png 'nodejsyii')
+
+如果没有404页面，可以用腾讯公益的404页面：
+
+```js
+ctx.body = '<script type="text/javascript" src="//qzonestyle.gtimg.cn/qzone/hybrid/app/404/search_children.js" charset="utf-8" homePageUrl="http://yoursite.com/yourPage.html" homePageName="回到我的主页"></script>';
+```
+
+4. 接着，再加上对500的处理。
+
+```js
+class errorHandler {
+    static error(app, logger) {
+        app.use(async(ctx, next) => {
+            try {
+                await next();
+            } catch(e) {
+                ctx.body = '500请求，恢复中～'
+            }
+        })
+        app.use(async(ctx, next) => {
+            await next();
+            if (ctx.status !== 404) {
+                return;
+            }
+            ctx.status = 200;
+            ctx.body = '<script type="text/javascript" src="//qzonestyle.gtimg.cn/qzone/hybrid/app/404/search_children.js" charset="utf-8" homePageUrl="http://yoursite.com/yourPage.html" homePageName="回到我的主页"></script>';
+        })
+    }
+}
+module.exports = errorHandler;
+```
+
+如果把 ApiController.js 文件中的 ctx.body 改成：
+
+```js
+ctx.body = {
+    data: xxx // xxx 是没定义的变量
+}
+```
+
+此时访问 http://localhost:8081/api/list，就会看到页面显示500的信息。同样的，只要有返回内容，koa 也对500做了优化，会自动把状态码转为200。
+
+![nodejsyii](../.vuepress/public/assets/image/nodejs/nodejsyii13.png 'nodejsyii')
+
+5. 不过，出错了不仅仅是给用户一个友好的提示，还需要记录报错的日志信息。
+
+此时可以用到 [log4js](https://www.npmjs.com/package/log4js)。安装好 log4js 之后，就可以使用它了。
+
+```js
+// app.js
+const Koa = require('koa');
+const render = require('koa-swig');
+const serve = require('koa-static');
+const co = require('co');
+const log4js = require("log4js");
+const errorHandler = require('./middlewares/errorHandler');
+// const { historyApiFallback } = require('koa2-connect-history-api-fallback');
+const { port, viewDir, staticDir, memoryFlag } = require('./config');
+const app = new Koa();
+
+// app.use(historyApiFallback({ index: '/', whiteList: ['/api'] })); // 一定要放在 router 之前
+
+log4js.configure({
+    appenders: { cheese: { type: "file", filename: "logs/error.log" } },
+    categories: { default: { appenders: ["cheese"], level: "error" } }
+});
+const logger = log4js.getLogger("cheese");
+
+app.use(serve(staticDir));
+
+app.context.render = co.wrap(render({
+    root: viewDir,
+    autoescape: true,
+    cache: memoryFlag,
+    ext: 'html',
+    varControls: ['[[', ']]'],
+    writeBody: false
+}));
+
+errorHandler.error(app, logger);
+
+require('./controllers')(app);
+
+app.listen(port, () => {
+    console.log('服务启动成功', port);
+})
+```
+
+然后在浏览器中重新访问 http://localhost:8081/api/list，就会看到生成了一个 logs 文件夹，里面有一个 error.log 文件。
+
+## 将 Yii 接口输出 JSON 给 Node.js 使用
+
+1. 打开之前作业一的项目，在 XAMPP 的 htdocs 中。只需要把 BooksController.php 里的 actionIndex 改成下面这样就可以了。
+
+```php
+use yii\web\Response;
+
+public function actionIndex()
+{
+    $searchModel = new BooksSearch();
+    $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+    // return $this->render('index', [
+    //     'searchModel' => $searchModel,
+    //     'dataProvider' => $dataProvider,
+    // ]);
+
+    YII::$app->response->format = Response::FORMAT_JSON;
+    return $dataProvider->getModels();
+}
+```
+
+启动项目 php yii serve，然后浏览器中访问 http://localhost:8080/index.php?r=books/index。就可以看到数据以 JSON 格式返回了。
+
+![nodejsyii](../.vuepress/public/assets/image/nodejs/nodejsyii14.png 'nodejsyii')
+
+2. 既然已经有返回 JSON 数据了，那么项目就可以使用了。
+
+```js
+// models/Books.js
+const axios = require('axios');
+
+class Books {
+    getData() {
+        return axios.get('http://localhost:8080/index.php?r=books/index');
+    }
+}
+
+module.exports = Books;
+```
+
+```js
+// controllers/ApiController.js
+const Controller = require('./Controller');
+const Book = require('../models/Books');
+class ApiController extends Controller {
+    constructor() {
+        super();
+    }
+    async actionIndex(ctx, next) {
+        const book = new Book();
+        const { data } = await book.getData();
+        ctx.body = {
+            data
+        }
+    }
+    async actionCreate() {}
+}
+module.exports = ApiController;
+```
+
+页面上访问 http://localhost:8081/api/list，这样就可以把接口的数据取到了。但是访问之后却出现了问题，拒绝访问：
+
+![nodejsyii](../.vuepress/public/assets/image/nodejs/nodejsyii15.png 'nodejsyii')
+
+3. 介绍一个可以创建目录别名的插件 [module-alias](https://www.npmjs.com/package/module-alias)。
+
+在 app.js 文件中最上面加上这段代码。
+
+```js
+const moduleAlias = require('module-alias');
+moduleAlias.addAliases({
+    '@root'  : __dirname,
+    '@models': __dirname + '/models',
+    '@controllers': __dirname + '/controllers'
+});
+```
+
+之后我们引用文件时就不需要写像下面这样的相对路径了。
+
+```js
+const Book = require('../models/Books');
+```
+
+可以写成：
+
+```js
+const Book = require('@models/Books');
+```
+
+4. 上面拿到了接口数据之后，就可以使用 swig 模版在页面上渲染出来。
+
+- 新建一个 list.html。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书展示</title>
+</head>
+<body>
+    <ul>
+        {% for key, val in data %}
+        <li>[[val.author]]</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+```
+
+- 然后补充 ApiController.js 文件的 actionCreate 函数。
+
+```js
+const Controller = require('./Controller');
+const Books = require('@models/Books');
+class ApiController extends Controller {
+    constructor() {
+        super();
+    }
+    async actionIndex(ctx, next) {
+        const book = new Books();
+        const { data } = await book.getData();
+        ctx.body = {
+            data
+        }
+    }
+    async actionCreate(ctx, next) {
+        const book = new Books();
+        const { data } = await book.getData();
+        ctx.body = await ctx.render('list', { data });
+    }
+}
+module.exports = ApiController;
+```
+
+## 生成 tree 目录
+
+1. 完成项目之后，需要对我们的项目目录有一个说明，可以安装 tree：
+
+```
+brew install tree
+```
+
+2. 安装完成后执行以下命令，就可以在 README.md 文件中看到生成的目录结构。
+
+```
+tree -L 1 > README.md
+```
