@@ -1180,20 +1180,20 @@ const Book = require('@models/Books');
 
 ```js
 const Controller = require('./Controller');
-const Books = require('@models/Books');
+const Book = require('@models/Books');
 class ApiController extends Controller {
     constructor() {
         super();
     }
     async actionIndex(ctx, next) {
-        const book = new Books();
+        const book = new Book();
         const { data } = await book.getData();
         ctx.body = {
             data
         }
     }
     async actionCreate(ctx, next) {
-        const book = new Books();
+        const book = new Book();
         const { data } = await book.getData();
         ctx.body = await ctx.render('list', { data });
     }

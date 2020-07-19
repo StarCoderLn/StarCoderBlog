@@ -94,6 +94,7 @@ module.exports = {
         title: '前端工程化',
         collapsable: false,
         children: [
+          { title: 'CI/CD', path: '/engineering/cicd.md' },
           { title: 'Java 环境搭建和 SonarQube 安装', path: '/engineering/sonar.md' }
         ]
       },
@@ -109,7 +110,8 @@ module.exports = {
         title: 'Mac 开发体验优化',
         collapsable: false,
         children: [
-          { title: '终端美化', path: '/mac/iterm2' }
+          { title: '终端美化', path: '/mac/iterm2' },
+          { title: 'Homebrew 下载安装', path: '/mac/homebrew' }
         ]
       }
     ],
