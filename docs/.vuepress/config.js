@@ -94,6 +94,7 @@ module.exports = {
         title: '前端工程化',
         collapsable: false,
         children: [
+          { title: '手写一个脚手架', path: '/engineering/cli.md' },
           { title: 'CI/CD', path: '/engineering/cicd.md' },
           { title: 'Java 环境搭建和 SonarQube 安装', path: '/engineering/sonar.md' }
         ]
