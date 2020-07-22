@@ -157,3 +157,64 @@ program.parse(process.argv);
 执行效果如下：
 
 ![cli](../.vuepress/public/assets/image/engineering/cli9.png 'cli')
+
+5. quicktype
+
+[quicktype](https://quicktype.io/) 是一个能将 JSON 转换为任何语言的包。需要全局安装。
+
+[chalk](https://www.npmjs.com/package/chalk) 是一个能使文字以某种颜色高亮显示的包。
+
+```js
+#!/usr/bin/env node
+const figlet = require('figlet');
+const fontStr = figlet.textSync('linnan');
+const version = require('../package').version;
+const Printer = require('@darkobits/lolcatjs');
+const transformed = Printer.default.fromString(` 星际开发脚手架：${version} \n ${fontStr}`);
+const chalk = require('chalk');
+const shell = require('shelljs');
+const { program } = require('commander');
+
+program.version(transformed);
+
+program
+  .option('-u, --update', 'Get lastest version')
+  .option('-d, --download', 'Download a project')
+  .option('-c, --create', 'Create a project')
+  .option('-j, json', 'Convert JSON to any language');
+
+const handlers = {
+  json(dataURL) {
+    shell.exec(`quicktype ${dataURL} -o ${shell.pwd().stdout}/Weather.ts --runtime-typecheck`);
+    // shell.exec(`quicktype ${dataURL} -o Weather.ts --runtime-typecheck`);
+  }
+}
+
+program
+  .usage('[cmd] <options>')
+  .arguments('<cmd> [env]')
+  .action((cmd, otherParams) => {
+    const handler = handlers[cmd];
+    if (typeof handler == 'undefined') {
+      console.log(chalk.blue(`${cmd}`) + chalk.red('暂未支持'));
+    } else {
+      handler(otherParams);
+    }
+  });
+
+program.parse(process.argv);
+```
+
+6. 脚手架的基本要求
+
+- 用 [inquirer](https://www.npmjs.com/package/inquirer) 完成与用户的交互。
+
+- 能够根据用户的选择，下载 github 项目，[download-git-repo](https://www.npmjs.com/package/download-git-repo)。
+
+- 下载下来的项目能够放到用户指定的目录，利用 [shelljs](https://www.npmjs.com/package/shelljs)、[ora](https://www.npmjs.com/package/ora)（一个能提供 loading 效果的包）。
+
+- 帮用户完善最终的操作。npm install / yarn install
+
+::: warning 注意
+使用脚手架之前，要确保有一个模版项目可供下载，不然这个脚手架就发挥不了用处了。
+:::
