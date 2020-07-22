@@ -45,6 +45,16 @@ console.log(123);
 
 ![cli](../.vuepress/public/assets/image/engineering/cli4.png 'cli')
 
+::: warning 注意
+解释下 `#!/usr/bin/env node` 这句代码的作用。
+
+- 首先，`#!` 其实是一个符号，这个符号在 Linux 或 Unix 中被称为 `Shebang`。**用于指明这个脚本文件的解释程序**，因此加这一行的目的就是指定 Node.js 来执行脚本文件。
+
+- 其次，由于不同用户或者不同的脚本解释器有可能安装在不同的目录下，那么系统如何知道要去哪里找解释程序呢？ `/usr/bin/env` 就是**告诉系统可以去 PATH 目录中查找，这就解决了不同用户的 Node.js 路径不同的问题，可以让系统动态的去查找 Node.js 来执行你的脚本文件**。有时候如果加了这一行，碰到了 `No such file or directory` 这样的错误，那应该是你的 Node.js 没有添加到系统的 PATH 中，配置下就好了。
+
+- 最后，**这句命令一定要放在第一行才会生效**！如果是 window 系统，就不需要加这一行了，也能执行，因为 **window 系统并不支持 Shebang，它是通过文件的扩展名来确定使用什么解释器来执行脚本**。
+:::
+
 3. 接下来就可以开始整活了。首先我们可以弄一个好玩的字符画，这需要用到 [figlet](https://www.npmjs.com/package/figlet)。直接 npm install figlet 安装就行了。
 
 在 starcli 中编辑以下代码：
@@ -76,6 +86,16 @@ console.log(transformed);
 执行后就会看到以下效果。
 
 ![cli](../.vuepress/public/assets/image/engineering/cli6.png 'cli')
+
+::: warning 注意
+在 window 上还会报找不到 @darkobits/lolcatjs 这个包的错误，原因是这个包是全局安装的，而 Node.js 默认不在全局找包。我们需要配置环境变量才能解决这个问题，那么如何配置呢？
+
+- 首先，通过 `where node` 命令查看自己本机的 Node.js 的安装路径，比如我自己的是在：C:\Program Files\nodejs\node.exe。 
+
+- 然后，打开文件夹，输入 `控制面板\系统和安全\系统` 打开系统设置页面，再点击 `高级系统设置` -> `环境变量`。
+
+- 最后，在当前用户的环境变量里或者是系统变量里增加一个环境变量 `NODE_PATH`，值是 `C:\Program Files\nodejs\node_modules`。配置好之后重新打开终端，执行命令就没问题了。
+:::
 
 4. 弄好字符画之后，接下来看看怎么实现接受用户的命令执行不同的操作。
 
