@@ -959,7 +959,7 @@ yideng.method(fn, 1) // 10 2
 
 > 答案解析
 
-new 操作符做了以下这些事：
+- new 操作符做了以下这些事：
 
 （1）它创建了一个全新的对象。
 
@@ -1017,6 +1017,90 @@ console.log(obj) // person {name: "lin", age: 18}
 ```
 
 :lock: **2. 手写一个 JSON.stringfy 和 JSON.parse。**
+
+> 答案解析
+
+[JSON](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON) 对象包含两个方法: 用于解析 JavaScript Object Notation  (JSON) 的 parse() 方法，以及将对象/值转换为 JSON字符串的 stringify() 方法。
+
+- 实现 JSON.stringfy 需要遵循以下原则：
+
+（1）转换值如果含有 [toJSON()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Date/toJSON) 方法，直接调用该方法转换，否则调用 toString()。
+
+（2）非数组对象的属性不能保证以特定的顺序出现在序列化后的字符串中。
+
+（3）布尔值（Boolean）、数字（Number）、字符串（String）的包装对象在序列化过程中会自动转换成对应的原始值。
+
+（4）`undefined`、任意的函数以及 `symbol` 值，在序列化过程中会被忽略（出现在非数组对象的属性值中时），或者被转换成 null（出现在数组中时）。
+
+（5）函数、undefined 被单独转换时，会返回 undefined，如 JSON.stringify(function() {}) 和 JSON.stringify(undefined) 都会返回 undefined。
+
+（6）不可枚举的属性会被忽略。
+
+（7）如果一个对象的属性值通过某种间接的方式指回该对象本身，即循环引用，属性也会被忽略。
+
+```js
+function jsonStringify(jsonObj) {
+    let result = '', curVal;
+    if (jsonObj === null) {
+        return String(jsonObj);
+    }
+    switch (typeof jsonObj) {
+        case 'number':
+        case 'boolean':
+            return String(jsonObj);
+        case 'string':
+            return '"' + jsonObj + '"';
+        case 'undefined':
+        case 'function':
+            return undefined;
+    }
+
+    switch (Object.prototype.toString.call(jsonObj)) {
+        case '[object Array]':
+            result += '[';
+            for (let i = 0, len = jsonObj.length; i < len; i++) {
+                curVal = JSON.stringify(jsonObj[i]);
+                result += (curVal === undefined ? null : curVal) + ",";
+            }
+            if (result !== '[') {
+                result = result.slice(0, -1);
+            }
+            result += ']';
+            return result;
+        case '[object Date]':
+            return '"' + (jsonObj.toJSON ? jsonObj.toJSON() : jsonObj.toString()) + '"';
+        case '[object RegExp]':
+            return "{}";
+        case '[object Object]':
+            result += '{';
+            for (let i in jsonObj) {
+                if (jsonObj.hasOwnProperty(i)) {
+                    curVal = JSON.stringify(jsonObj[i]);
+                    if (curVal !== undefined) {
+                        result += '"' + i + '":' + curVal + ',';
+                    }
+                }
+            }
+            if (result !== '{') {
+                result = result.slice(0, -1);
+            }
+            result += '}';
+            return result;
+
+        case '[object String]':
+            return '"' + jsonObj.toString() + '"';
+        case '[object Number]':
+        case '[object Boolean]':
+            return jsonObj.toString();
+    }
+}
+```
+
+```js
+function jsonParse(jsonObj) {
+  return eval('(' + jsonObj + ')');
+}
+```
 
 :lock: **3. 手写一个 call 或 apply。**
 
