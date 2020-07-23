@@ -63,7 +63,7 @@ module.exports = {
         children: [
           { title: 'VirtualBox虚拟机与ubuntu系统', path: '/linux/ubuntu' },
           { title: 'Cygwin', path: '/linux/cygwin' },
-          { title: 'Linux知识', path: '/linux/linux' }
+          { title: 'Linux', path: '/linux/linux' }
         ]
       },
       {
