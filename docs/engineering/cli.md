@@ -1,20 +1,4 @@
-## 调整项目目录结构
-
-1. 在之前做好的项目基础上，新建一个 src 文件夹，并在其下面新建 web 和 server 两个文件夹。然后把原来的 models、config、libs、logs、controllers 文件夹和 app.js 文件整个挪到 server 里面，原来的 views、widgets 和 assets 文件夹整个挪到 web 里面。web 就是你的前端项目，server 就是你的后端项目。
-
-2. 完成以上调整后，再新建 gulpfile.js 和 webpack.config.js 文件，前者主要用来编译 Node.js，后者主要用来编译前端项目，编译完后还会生成一个 dist 目录。**为什么要使用 gulp 而不是使用 webpack 来编译 Node.js？**
-
-- gulp 简单，能够很简单的对 ES6 需要的地方进行编译。
-
-- 清洗项目的时候灵活。
-
-- webpack 太慢了。webpack 强势的地方在于解决依赖的问题。
-
-调整好之后的目录结构如下：
-
-![cli](../.vuepress/public/assets/image/engineering/cli1.png 'cli')
-
-## 开发脚手架
+本文主要介绍如何开发一个脚手架的基本框架。
 
 1. 新建一个 star-cli 项目，并新建一个 bin 文件夹。然后进入到这个项目中，执行 npm init -y 初始化项目。
 

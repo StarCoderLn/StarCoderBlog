@@ -94,7 +94,8 @@ module.exports = {
         title: '前端工程化',
         collapsable: false,
         children: [
-          { title: '手写一个脚手架', path: '/engineering/cli.md' },
+          { title: '开发脚手架', path: '/engineering/cli.md' },
+          { title: 'Webpack 与 Gulp', path: '/engineering/buildtool.md' },
           { title: 'CI/CD', path: '/engineering/cicd.md' },
           { title: 'Java 环境搭建和 SonarQube 安装', path: '/engineering/sonar.md' },
           { title: 'Jenkins 安装', path: '/engineering/jenkins.md' }
