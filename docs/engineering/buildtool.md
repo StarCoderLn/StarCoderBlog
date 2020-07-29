@@ -620,3 +620,160 @@ _plugins.push(
 ```
 
 重新编译后，create.html 和 list.html 就没有引入 js 文件了。
+
+12. 自己写一个 webpack 插件（**HtmlAfterPlugin**）来实现将 js 和 css 文件插入到指定位置的功能。
+
+（1）在 config 文件夹下新建一个 HtmlAfterPlugin.js 文件。从 [webpack 官网](https://www.webpackjs.com/concepts/plugins/)复制一段插件代码。
+
+```js
+// HtmlAfterPlugin.js
+const pluginName = 'ConsoleLogOnBuildWebpackPlugin';
+
+class ConsoleLogOnBuildWebpackPlugin {
+    apply(compiler) {
+        compiler.hooks.run.tap(pluginName, compilation => {
+            console.log("webpack 构建过程开始！");
+        });
+    }
+}
+
+module.exports = ConsoleLogOnBuildWebpackPlugin;
+```
+
+然后在 webpack.config.js 中引入它。注意，一定要放在 HtmlWebpackPlugin 下面。
+
+```js
+// webpack.config.js
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlAfterPlugin = require('./config/HtmlAfterPlugin');
+
+const webpackConfig = {
+    entry: _entry,
+    optimization: { // 把 webpack 公用代码抽出来
+        runtimeChunk: {
+            name: 'runtime',
+        }
+    },
+    plugins: [..._plugins, new HtmlAfterPlugin()]
+};
+```
+
+执行 `npm run client:dev` 就可以看到输出了“webpack 构建过程开始！”。
+
+（2）参考 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 来使用学习 webpack 各种 hook（钩子）的用法。
+
+复制 html-webpack-plugin 页面下边 plugin.js 的代码到 HtmlAfterPlugin.js 中，这里的插件写法跟官网的不太一样，我们直接用这段，删掉原来的，并修改成我们自己的插件。
+
+```js
+// HtmlAfterPlugin.js
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const pluginName = 'HtmlAfterPlugin';
+
+class HtmlAfterPlugin {
+    apply (compiler) {
+      compiler.hooks.compilation.tap(pluginName, (compilation) => {
+        HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+            pluginName,
+            (data, cb) => {
+                // data 里就是 beforeEmit 这个钩子能拿到的信息
+                // 有几个 chunk 就会输出几块信息
+                // console.log(data)
+                data.html += 'The Magic Footer'
+                cb(null, data)
+            }
+        )
+      })
+    }
+}
+
+module.exports = HtmlAfterPlugin;
+```
+
+编译后就能看到拿到的信息了，并且 create.html 和 list.html 中还加上了 “The Magic Footer”。这就说明我们可以有能力往 create.html 和 list.html 中插入东西了。可以试下能不能替换掉 list.html 中的 <!-- injectjs -->，加上以下几句：
+
+```js
+// HtmlAfterPlugin.js
+(data, cb) => {
+    let _html = data.html;
+    _html = _html.replace('<!-- injectjs -->', '123');
+    data.html = _html;
+    cb(null, data);
+}
+```
+
+重新编译后可以看到 list.html 中的 <!-- injectjs --> 就被替换成 123 了。
+
+（3）获取我们的静态资源（js 和 css），然后替换掉 list.html 中的占位符。
+
+beforeEmit 这个钩子并不能拿到我们需要的静态资源，我们得去 **beforeAssetTagGeneration** 这个钩子上拿。
+
+```js
+// HtmlAfterPlugin.js
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const pluginName = 'HtmlAfterPlugin';
+
+// 获取静态资源的帮助函数
+const assetsHelp = data => {
+    let js = [];
+    const getAssetsName = {
+        js: item => `<script src="${item}"></script>`
+    }
+    for (let jsItem of data.js) {
+        js.push(getAssetsName.js(jsItem));
+    }
+    return { js };
+}
+
+class HtmlAfterPlugin {
+    constructor () {
+        this.jsArr = [];
+    }
+    apply (compiler) {
+        compiler.hooks.compilation.tap(pluginName, (compilation) => {
+            HtmlWebpackPlugin.getHooks(compilation).beforeAssetTagGeneration.tapAsync(
+                pluginName,
+                (data, cb) => {
+                    const { js } = assetsHelp(data.assets); // 获取 js
+                    this.jsArr = js;
+                    console.log(js);
+                    cb(null, data);
+                }
+            )
+            HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+                pluginName,
+                (data, cb) => {
+                    let _html = data.html;
+                    const result = data.assets;
+                    _html = _html.replace('<!-- injectjs -->', this.jsArr.join('')); // 替换掉 html 中的占位符
+                    data.html = _html;
+                    cb(null, data);
+                }
+            )
+        })
+    }
+}
+
+module.exports = HtmlAfterPlugin;
+```
+
+编译后，就可以看到 list.html 的占位符已被成功替换了。
+
+```html
+<!-- 继承 layout.html -->
+{% extends '../../layouts/layout.html' %}
+
+{% block title %} 图书列表页 {% endblock %}
+
+{% block head %}
+    <!-- injectcss -->
+{% endblock %}
+
+{% block content %}
+    <!-- 引入 banner 组件 -->
+    {% include "../../../components/banner/banner.html" %}
+{% endblock %}
+
+{% block script %}
+    <script src="/scripts/runtime.bundle.js"></script><script src="/scripts/books-list.bundle.js"></script>
+{% endblock %}
+```
