@@ -777,3 +777,469 @@ module.exports = HtmlAfterPlugin;
     <script src="/scripts/runtime.bundle.js"></script><script src="/scripts/books-list.bundle.js"></script>
 {% endblock %}
 ```
+
+（4）替换路径
+
+- 由于在 list.html 中引用其他 html 文件时写相对路径是比较痛苦的事，以后如果目录改变了，有多个文件的话，修改起来也麻烦。所以我们可以自定义一个路径，然后自动将它替换成对应的相对路径。比如在 list.html 中可以这么写：
+
+```html
+{% extends '@layouts/layout.html' %}
+
+...
+
+{% include "@components/banner/banner.html" %}
+```
+
+然后在 HtmlAfterPlugin.js 中，配置以下替换路径。
+
+```js
+HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+    pluginName,
+    (data, cb) => {
+        let _html = data.html;
+        const result = data.assets;
+        _html = _html.replace('<!-- injectjs -->', this.jsArr.join('')); // 替换掉 html 中的占位符
+        _html = _html.replace(/@components/g, '../../../components');
+        _html = _html.replace(/@layouts/g, '../../layouts');
+        data.html = _html;
+        cb(null, data);
+    }
+)
+```
+
+打包生成后的 list.html 中的路径就会被替换成正确的了，以后如果目录有变化，我们直接修改 HtmlAfterPlugin.js 文件就行了，比较方便。
+
+- 同样的，我们把 js 文件中的相对路径也给替换掉。但是要注意，js 文件中路径的自动替换需要在 webpack.config.js 中进行配置，这个跟上面那个是两回事，上面那个是我们自己写的插件替换的，而这里是 webpack 去处理的。
+
+```js
+// books-list.entry.js
+import banner from '@/components/banner/banner.js';
+
+banner.init();
+```
+
+然后需要在 webpack.config.js 中加入以下配置。
+
+```js
+const { resolve } = require('path');
+
+const webpackConfig = {
+    entry: _entry,
+    optimization: { // 把 webpack 公用代码抽出来
+        runtimeChunk: {
+            name: 'runtime',
+        }
+    },
+    plugins: [..._plugins, new HtmlAfterPlugin()],
+    resolve: {
+        alias: {
+            '@': resolve('src/web')
+        }
+    }
+};
+```
+
+（5）补充完整 create.html，以及新建 list 和 create 组件。
+
+```html
+<!-- 继承 layout.html -->
+{% extends '@layouts/layout.html' %}
+
+{% block title %} 添加图书 {% endblock %}
+
+{% block head %}
+    <!-- injectcss -->
+{% endblock %}
+
+{% block content %}
+    <!-- 引入 banner 组件 -->
+    {% include "@components/banner/banner.html" %}
+    <h1>添加图书</h1>
+{% endblock %}
+
+{% block script %}
+    <!-- injectjs -->
+{% endblock %}
+```
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool16.png 'buildtool')
+
+到此，页面模版组件基本上就弄好了，接下来要开始弄 Node.js 的部分了。
+
+（6）把 server 文件夹下的 js 文件中 require 换成 ES6 的导入导出模块形式，这是现在更常用的方式。点击快速修复就可以一键转换了。
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool17.png 'buildtool')
+
+然后把 ApiController.js 和 IndexController.js 文件的内容修改如下：
+
+```js
+// ApiController.js
+import Controller from './Controller';
+class ApiController extends Controller {
+    constructor() {
+        super();
+    }
+    async actionIndex(ctx, next) {
+        ctx.body = await ctx.render('books/pages/list');
+    }
+    async actionCreate(ctx, next) {
+        ctx.body = await ctx.render('books/pages/create');
+    }
+}
+export default ApiController;
+```
+
+```js
+// IndexController.js
+import Controller from './Controller';
+class IndexController extends Controller {
+    constructor() {
+        super();
+    }
+    async actionIndex(ctx, next) {
+        ctx.body = '首页';
+    }
+}
+
+export default IndexController;
+```
+
+（7）补充 banner.html，然后把 ApiController.js 重命名为 BooksController.js，并且 BooksController.js 和 controllers/index.js 里面的 ApiController 也都要改成 BooksController。
+
+```html
+<div class="banner">
+    <ul>
+        <li><a href="/">首页</a></li>
+        <li><a href="/books/list">展示图书</a></li>
+        <li><a href="/books/create">添加图书</a></li>
+    </ul>
+</div>
+```
+
+到这里，后端的准备工作也基本完成了。下面可以进行 Gulp 清洗了。
+
+## 使用 Gulp 对 Node.js 项目进行流清洗
+
+此时，dist 文件夹下还缺少 components 里边的组件的 html 内容，我们将它们拷贝过去就行了，但是注意不是手动的拷贝，不能往 dist 文件夹里手动拷贝任何东西。
+
+接下来就要开始编写 gulpfile.js 了。
+
+[gulp 官网](https://www.gulpjs.com.cn/)
+
+需要安装以下插件：
+
+- [gulp](https://www.npmjs.com/package/gulp)
+
+- [gulp-watch](https://www.npmjs.com/package/gulp-watch)
+
+- [gulp-plumber](https://www.npmjs.com/package/gulp-plumber)，防止因 gulp 插件错误而导致管道中断。
+
+- [gulp-babel](https://www.npmjs.com/package/gulp-babel)
+
+- [@babel/plugin-transform-modules-commonjs](https://babeljs.io/docs/en/babel-plugin-transform-modules-commonjs)
+
+- [gulp-rollup](https://www.npmjs.com/package/gulp-rollup)，负责代码清洗。
+
+```js
+// gulpfile.js
+const gulp = require('gulp');
+const watch = require('gulp-watch');
+const plumber = require('gulp-plumber');
+const entry = './src/server/**/*.js'; // 入口文件
+const cleanEntry = './src/server/config/index.js'; // 想要进行清洗的文件
+const rollup = require('gulp-rollup');
+const babel = require('gulp-babel');
+
+function buildDev() {
+    return watch(entry, { ignoreInitial: false }, () => {
+        gulp
+            .src(entry)
+            .pipe(plumber()) // 防止因 gulp 插件错误而导致管道中断 
+            .pipe(
+                babel({
+                    babelrc: false, // 使用 gulp-babel 时加上这个属性，防止跟外边的 babel 相互影响，最后出来的代码乱
+                    plugins: ['@babel/plugin-transform-modules-commonjs']
+                })
+            )
+            .pipe(gulp.dest('dist'));  // 输出到 dist 文件夹下
+    });
+}
+
+function buildProd() {
+    return gulp
+        .src(entry)
+        .pipe(
+            babel({
+                babelrc: false, // 使用 gulp-babel 时加上这个属性，防止跟外边的 babel 相互影响，最后出来的代码乱
+                ignore: [cleanEntry], // 忽略掉清洗的文件
+                plugins: ['@babel/plugin-transform-modules-commonjs']
+            })
+        )
+        .pipe(gulp.dest('dist'));  // 输出到 dist 文件夹下
+}
+
+// 清理环境变量
+function buildConfig() {
+    return gulp
+        .src(entry)
+        .pipe(
+            rollup({
+                input: cleanEntry,
+                output: {
+                    format: 'cjs'
+                }
+            })
+        )
+        .pipe(gulp.dest('./dist'));  // 输出到 dist 文件夹下
+}
+
+let build = gulp.series(buildDev);
+if (process.env.NODE_ENV == 'production') {
+    build = gulp.series(buildProd, buildConfig);
+}
+
+gulp.task('default', build);
+```
+
+上面这段代码就能帮我们清洗掉一些没用的代码了，执行 `npm run server:prod`。
+
+但是，清洗好像不太干净，因为 config/index.js 里判断环境变量的 if 语句还在。我们可以借助另外一个插件。
+
+[@rollup/plugin-replace](https://www.npmjs.com/package/@rollup/plugin-replace)
+
+在 gulpfile.js 中加入以下配置。
+
+```js
+const replace = require('@rollup/plugin-replace');
+
+function buildConfig() {
+    return gulp
+        .src(entry)
+        .pipe(
+            rollup({
+                input: cleanEntry,
+                output: {
+                    format: 'cjs'
+                },
+                plugins: [
+                    replace({
+                        'process.env.NODE_ENV': JSON.stringify('production')
+                    })
+                ]
+            })
+        )
+        .pipe(gulp.dest('./dist'));  // 输出到 dist 文件夹下
+}
+```
+
+重新执行命令就可以看到打包出来的 dist/config/index.js 的内容就没有 if 语句了。
+
+```js
+'use strict';
+
+var lodash = require('lodash');
+var path = require('path');
+
+let config = {
+    viewDir: path.join(__dirname, '..', 'views'),
+    staticDir: path.join(__dirname, '..', 'assets')
+};
+
+{
+    let prodConfig = {
+        port: 80,
+        memoryFlag: 'memory',
+    };
+    config = lodash.extend(config, prodConfig);
+}
+
+var config$1 = config;
+
+module.exports = config$1;
+```
+
+如果想清洗的更干净，可以再借助另外一个插件。
+
+[prepack](https://www.npmjs.com/package/prepack)
+
+[prepack 官网](https://prepack.io/)
+
+我们可以去 prepack 官网上找一些例子下来试试，比如：
+
+```js
+(function () {
+  function hello() { return 'hello'; }
+  function world() { return 'world'; }
+  global.s = hello() + ' ' + world();
+})();
+```
+
+执行之后清洗效果如下：
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool18.png 'buildtool')
+
+[gulp-prepack](https://www.npmjs.com/package/gulp-prepack)
+
+在 gulpfile.js 中加入以下配置。
+
+```js
+const prepack = require('gulp-prepack');
+
+function buildConfig() {
+    return gulp
+        .src(entry)
+        .pipe(
+            rollup({
+                input: cleanEntry,
+                output: {
+                    format: 'cjs'
+                },
+                plugins: [
+                    replace({
+                        'process.env.NODE_ENV': JSON.stringify('production')
+                    })
+                ]
+            })
+        )
+        .pipe(prepack({}))
+        .pipe(gulp.dest('./dist'));  // 输出到 dist 文件夹下
+}
+```
+
+重新打包后会发现 index.js 中清洗更干净了，不过因为不支持 require，所以报了点错误。
+
+到此，我们整个项目的打包编译就告一段落了。
+
+## 启动项目
+
+1. 接下来启动下项目。开三个终端，分别执行 `npm run server:dev`、`npm run client:dev`、`npm run server:start`。
+
+但是执行 `npm run server:start` 的时候报错了。
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool19.png 'buildtool')
+
+这是个很坑的错误，报错的原因是 commonjs 模块规范使用时，有些解构方式不兼容。解决方法是修改 app.js 里的模块导入解构的方式。
+
+```js
+import errorHandler from './middlewares/errorHandler';
+import config from './config';
+const { port, viewDir, staticDir, memoryFlag } = config;
+import controllers from './controllers';
+
+...
+
+errorHandler.error(app, logger);
+controllers(app);
+```
+
+改完之后重新启动，终于成功了！
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool20.png 'buildtool')
+
+但是此时不管是访问 http://localhost:8081/books/list 还是 http://localhost:8081/books/create 都是报了500，查看日志文件 error.log 才知道是因为打包后找不到 layout.html。
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool21.png 'buildtool')
+
+2. 要解决以上问题，就需要在打包的时候把 layout.html 拷贝到 dist 文件夹里。可以借助一个插件。
+
+[copy-webpack-plugin](https://www.npmjs.com/package/copy-webpack-plugin)
+
+但是，在使用这个插件的时候，有一点要特别注意的，就是要去掉 Mac 或 Windows 自带的一些隐藏文件，不要把这些隐藏文件也一起拷贝过去！！！
+
+在 webpack.development.js 中加入以下配置。
+
+```js
+const { join } = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
+
+module.exports = {
+    output: {
+        path: join(__dirname, '../dist/assets'),
+        publicPath: '/',
+        filename: 'scripts/[name].bundle.js'
+    },
+    plugins: [
+        // 拷贝 layout.html
+        new CopyPlugin({
+          patterns: [
+            {
+                from: join(__dirname, '../', 'src/web/views/layouts/layout.html'), 
+                to: '../views/layouts/layout.html'
+            }
+          ]
+        }),
+        // 拷贝 components 文件夹下的内容
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: 'src/web/components/**/*.html',
+                    to: '../components',
+                    transformPath(targetPath, absolutePath) {
+                        return targetPath.replace('src/web/components/', '');
+                    }
+                }
+            ]
+        })
+    ],
+};
+```
+
+然后执行 `npm run client:dev`，就可以看到 dist 文件夹下也有这两部分内容了。
+
+此时，重新启动项目，再访问 http://localhost:8081/books/list 和 http://localhost:8081/books/create 就可以了。
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool22.png 'buildtool')
+
+![buildtool](../.vuepress/public/assets/image/engineering/buildtool23.png 'buildtool')
+
+3. 开发环境解决了，我们还得解决线上环境的。
+
+把 webpack.development.js 的内容复制到 webpack.production.js 中。线上跟本地开发环境的区别就是要对代码做一个压缩优化处理，这需要用到一个插件。
+
+[html-minifier](https://www.npmjs.com/package/html-minifier)
+
+```js
+// webpack.production.js
+const { join } = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
+const minify = require('html-minifier').minify;
+
+module.exports = {
+    output: {
+        path: join(__dirname, '../dist/assets'),
+        publicPath: '/',
+        filename: 'scripts/[name].[contenthash:5].bundle.js'
+    },
+    plugins: [
+        // 拷贝 layout.html
+        new CopyPlugin({
+          patterns: [
+            {
+                from: join(__dirname, '../', 'src/web/views/layouts/layout.html'), 
+                to: '../views/layouts/layout.html'
+            }
+          ]
+        }),
+        // 拷贝 components 文件夹下的内容
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: 'src/web/components/**/*.html',
+                    to: '../components',
+                    transform(content, absoluteFrom) {
+                        const resutlt = minify(content.toString('utf-8'), {
+                          collapseWhitespace: true,  // 处理空格
+                        });
+                        return resutlt;
+                    },
+                    transformPath(targetPath, absolutePath) {
+                      return targetPath.replace('src/web/components/', '');
+                    },
+                }
+            ]
+        }),
+    ],
+};
+```
+
+然后执行 `npm run client:prod` 命令就可以打线上环境的包了。
