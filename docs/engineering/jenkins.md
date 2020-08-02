@@ -1,5 +1,7 @@
 本文主要展示如何在服务器上安装 Jenkins。
 
+Jenkins 可以用来构建发布项目，它本质上是一个流程控制框架，没有插件的话，Jenkins 什么也干不了。
+
 ## 安装 Java
 
 1. 下载 .rpm 格式的 jdk 安装包到本地电脑。
@@ -160,3 +162,45 @@ firewall-cmd --permanent --zone=public --add-port=8082/tcp
 - 替换插件更新源。在 `系统管理 -> 插件管理 -> 高级 -> 升级站点` 中把原来的 `https://updates.jenkins.io/update-center.json` 替换成清华源 `https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json`。然后点击提交和立即获取。
 
 到此，整个 Jenkins 的启动与配置就完成啦～接下来可以开心的使用啦。:smile:
+
+::: warning 注意
+1. 读取设置不要随便点确定，否则之前所有的配置就会没了。除非配置乱了，需要重新开始配置。
+
+2. 已安装插件列表中那些不能点击卸载的插件是因为它们是其他插件的依赖，有其他插件依赖了它们，所以不能卸载，除非依赖它们的插件被卸载了，它们才可以被卸载。
+
+3. 已安装的插件是不会出现在可选插件列表中的。
+
+4. 做 Node.js 项目需要安装的插件有：
+
+- **NodeJS Plugin**
+
+- **Git PreBuildMerge Trait Plugin**
+
+- **GitHub Integration Plugin**
+
+- **Publish Over SSH**
+
+- **SSH Agent Plugin**
+
+之后缺少的插件再去 [Jenkins 的插件商店](https://plugins.jenkins.io/)上找就行了。
+
+5. 如果需要扩容的话，需要在节点管理里配置，增加节点。
+
+6. Jenkins 命令行是 Jenkins 的客户端，使用挺麻烦的，一般用不着。脚本命令行是可以用 Groovy 去编写脚本，忽略就行了，用不着。
+
+7. Managed files 是用来给 Jenkins 写配置文件的，一般也用不着。
+
+8. 必须等任务执行完成后，才能点准备关机，不然的话任务执行流程会出问题，数据可能会受到破坏。而且一旦点了准备关机之后，就不会接收构建新任务了。
+:::
+
+## 新建 Jenkins 任务
+
+1. 输入任务名称，并选择构建的项目类型，一般选择第一个就行了，下面的都是比较复杂的项目才需要的。
+
+![jenkins](../.vuepress/public/assets/image/engineering/jenkins13.png 'jenkins')
+
+2. 配置 Git 仓库地址，但是配置的时候却出现了以下问题。
+
+![jenkins](../.vuepress/public/assets/image/engineering/jenkins14.png 'jenkins')
+
+出现这个问题的原因是，服务器上没有装 Git，执行 `yum install git` 命令，安装 Git。安装完成后，再执行 `whereis git` 命令，查看 Git 的安装路径。
