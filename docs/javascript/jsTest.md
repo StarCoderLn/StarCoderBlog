@@ -1104,7 +1104,66 @@ function jsonParse(jsonObj) {
 
 :lock: **3. 手写一个 call 或 apply。**
 
+> 答案解析
+
+- 实现 [call](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/call)
+
+```js
+Function.prototype.myCall = function(context) {
+  if (typeof this !== 'function') {
+    throw new TypeError('not function');
+  }
+  context = context || window;
+  context.fn = this;
+  let args = [...arguments].slice(1);
+  let result = context.fn(...args);
+  delete context.fn;
+  return result;
+}
+```
+
+- 实现 [apply](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/apply)
+
+```js
+Function.prototype.myApply = function(context) {
+  if (typeof this !== 'function') {
+    throw new TypeError('not function');
+  }
+  context = context || window;
+  context.fn = this;
+  let result;
+  if (arguments[1]) {
+    result = context.fn(...arguments[1])
+  } else {
+    result = context.fn();
+  }
+  delete context.fn;
+  return result;
+}
+```
+
 :lock: **4. 手写一个 Function.bind。**
+
+> 答案解析
+
+- 实现 [bind](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)
+
+```js
+Function.prototype.myBind = function(context){
+  if(typeof this !== 'function'){
+    throw new TypeError('not function');
+  }
+  const _this = this;
+  const argus = [...arguments].slice(1);
+  return function F(){
+    //因为返回了一个函数，可以new F(),所以需要判断
+    if(this instanceof F){
+      return new _this(...argus,...arguments);
+    }
+    return _this.apply(context,argus.concat(...arguments));
+  }
+}
+```
 
 :lock: **5. 手写防抖（Debouncing）和节流（Throttling）。**
 

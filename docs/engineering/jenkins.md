@@ -203,4 +203,4 @@ firewall-cmd --permanent --zone=public --add-port=8082/tcp
 
 ![jenkins](../.vuepress/public/assets/image/engineering/jenkins14.png 'jenkins')
 
-出现这个问题的原因是，服务器上没有装 Git，执行 `yum install git` 命令，安装 Git。安装完成后，再执行 `whereis git` 命令，查看 Git 的安装路径。
+出现这个问题的原因是，服务器上没有装 Git，执行 `yum install git` 命令，安装 Git。安装完成后，再执行 `which git` 命令，查看 Git 的安装路径。
