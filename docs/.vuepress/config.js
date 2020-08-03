@@ -102,6 +102,13 @@ module.exports = {
         ]
       },
       {
+        title: '性能优化',
+        collapsable: false,
+        children: [
+          { title: '性能优化学徒工', path: '/performance/optimize1.md' }
+        ]
+      },
+      {
         title: '算法学习总结',
         collapsable: false,
         children: [
