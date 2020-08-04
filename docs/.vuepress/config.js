@@ -38,6 +38,13 @@ module.exports = {
         ]
       },
       {
+        title: 'Nginx',
+        collapsable: false,
+        children: [
+          { title: 'Nginx 安装', path: '/nginx/install' }
+        ]
+      },
+      {
         title: 'PHP',
         collapsable: false,
         children: [

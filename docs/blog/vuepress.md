@@ -30,6 +30,28 @@
   /var/root/.ssh/id_rsa.pub
   ```
 
-3. 补充  
+3. 部署到自己的服务器上
+
+- 首先，服务器上需要安装配置好 nginx，安装方法可以查看 [Nginx 安装](../nginx/install.md)。
+
+- 然后，进入到项目目录中，执行 `npm run build` 命令打包项目。
+
+- 其次，将打包生成的 dist 目录上传到服务器上的 `/etc/nginx` 目录下。
+
+```shell
+scp -r dist scl:/etc/nginx
+```
+
+- 最后，修改 nginx 的配置文件中的 root，把它改成访问项目的首页。
+
+```
+root /etc/nginx/dist;
+```
+
+此时，在浏览器中访问服务器 IP 地址，就可以看到自己的博客啦～:smile:
+
+![vuepress](../.vuepress/public/assets/image/blog/vuepress.png "vuepress")  
+
+4. 补充  
 [VuePress中文文档](https://vuepress.vuejs.org/zh/)  
 [Markdown语法详解](https://github.com/cdoco/markdown-syntax)
