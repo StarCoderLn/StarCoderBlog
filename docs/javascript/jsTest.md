@@ -1149,25 +1149,98 @@ Function.prototype.myApply = function(context) {
 - 实现 [bind](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)
 
 ```js
-Function.prototype.myBind = function(context){
-  if(typeof this !== 'function'){
+Function.prototype.myBind = function(context) {
+  if (typeof this !== 'function') {
     throw new TypeError('not function');
   }
   const _this = this;
   const argus = [...arguments].slice(1);
-  return function F(){
+  return function F() {
     //因为返回了一个函数，可以new F(),所以需要判断
-    if(this instanceof F){
+    if (this instanceof F) {
       return new _this(...argus,...arguments);
     }
-    return _this.apply(context,argus.concat(...arguments));
+    return _this.apply(context, argus.concat(...arguments));
   }
 }
 ```
 
 :lock: **5. 手写防抖（Debouncing）和节流（Throttling）。**
 
+- 所谓防抖，是指在任务频繁触发的情况下，只有任务触发的时间间隔超过指定时间间隔时，任务才会执行。
+
+```js
+// 非立即执行版
+function debounce(fn, wait) {
+  let timer = null;
+  return function() {
+    let context = this;
+    let args = arguments;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(context, args);
+    }, wait);
+  }
+}
+```
+
+```js
+// 立即执行版
+function debounce(fn, wait) {
+  let timer = null;
+  return function() {
+    let context = this;
+    let args = arguments;
+    if (timer) clearTimeout(timer);
+    let callNow = !timer;
+    timer = setTimeout(() => {
+      timer = null;
+    }, wait);
+    if (callNow) fn.apply(context, args);
+  }
+}
+```
+
+- 所谓节流，是指在指定时间间隔内只会执行一次任务。
+
+```js
+// 时间戳版
+function throttle(fn, wait) {
+  let last = 0;
+  return function() {
+    let context = this;
+    let args = arguments;
+    let now = Date.now();
+    if (now - last >= wait) {
+      fn.apply(context, args);
+      last = now;
+    }
+  }
+}
+```
+
+```js
+// 定时器版
+function throttle(fn, wait) {
+  let timer = null;
+  return function() {
+    let context = this;
+    let args = arguments;
+    if (!timer) {
+      timer = setTimeout(() => {
+        timer = null;
+        fn.apply(context, args);
+      }, wait);
+    }
+  }
+}
+```
+
 :lock: **6. 手写一个 JS 深拷贝（由浅入深多种写法）。**
+
+> 答案解析
+
+在你不知道的 JavaScript（上）中的[对象](./jsUnknow1.html#对象)部分已有整理过。
 
 :lock: **7. 手写一个 instanceOf 原理。**
 

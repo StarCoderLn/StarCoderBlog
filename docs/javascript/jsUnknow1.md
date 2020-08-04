@@ -3920,3 +3920,79 @@ myObject.foo = 'bar';
 大多数开发者都认为如果向 [[Prototype]] 链上层已经存在的属性（[[Put]]）赋值，就一定会触发屏蔽，但是如你所见，三种情况中只有一种（第一种）是这样的。
 
 **如果你希望在第二种和第三种情况下也屏蔽 foo，那就不能使用 = 操作符来赋值，而是使用 Object.defineProperty(..)来向 myObject 添加 foo**。
+
+::: warning 注意
+通常来说，使用屏蔽得不偿失，所以应当尽量避免使用。
+:::
+
+有些情况下会隐式产生屏蔽，比如：
+
+```js
+var anotherObject = {
+  a: 2
+};
+var myObject = Object.create(anotherObject);
+console.log(anotherObject.a);                    // 2
+console.log(myObject.a);                         // 2
+console.log(anotherObject.hasOwnProperty('a'));  // true
+console.log(myObject.hasOwnProperty('a'));       // false
+myObject.a++;                                    // 发生隐式屏蔽
+console.log(anotherObject.a);                    // 2
+console.log(myObject.a);                         // 3
+console.log(myObject.hasOwnProperty('a'));       // true
+```
+
+尽管 myObject.a++ 看起来应该（通过委托）查找并增加 anotherObject.a 属性，但是别忘了 ++ 操作相当于 myObject.a = myObject.a + 1。**因此 ++ 操作首先会通过 [[Prototype]] 查找属性 a 并从 anotherObject.a 获取当前属性值 2，然后给这个值加 1，接着用 [[Put]] 将值 3 赋给 myObject 中新建的屏蔽属性 a**。因此，修改委托属性时一定要小心。如果想让 anotherObject.a 的值增加，唯一的办法是 anotherObject.a++。
+
+### :blue_book: “类”
+
+为什么一个对象需要关联到另一个对象？这样做有什么好处呢？
+
+在回答这个问题之前，首先要理解 [[Prototype]] “不是”什么。
+
+通过前面的学习我们知道，JavaScript 和面向类的语言不同，它并没有类来作为对象的抽象模式。JavaScript 中只有对象。实际上，JavaScript 才是真正应该被称为“面向对象”的语言，因为它是少有的可以不通过类，直接创建对象的语言。
+
+:gem: **1. “类”函数**
+
+多年以来，JvavScript 中有一种奇怪的行为，就是模仿类。这种行为利用了函数的一种特性：
+
+**所有函数默认都会拥有一个名为 prototype 的公有并且不可枚举的属性，它会指向另一个对象。**
+
+```js
+function Foo() {}
+console.log(Foo.prototype); // {}
+```
+
+这个对象通常被称为 Foo 的原型，因为我们通过名为 Foo.prototype 的属性引用来访问它。但是这种叫法会对我们造成误导。这个对象到底是什么呢？
+
+这个对象是在 new Foo() 时创建的，最后会被关联到 Foo.prototype 这个对象上。
+
+可以验证一下：
+
+```js
+function Foo() {}
+var f = new Foo();
+console.log(Object.getPrototypeOf(f) === Foo.prototype); // true
+```
+
+调用 new Foo() 时会创建 f，其中的一步就是给 f 一个内部的 [[Prototype]] 链接，关联到 Foo.prototype 指向的那个对象。
+
+在面向类的语言中，类可以被复制（或者说实例化）多次，就像用模具制作东西一样。之所以会这样是因为实例化（或者继承）一个类就意味着“把类的行为复制到物理对象中”，对于每一个新实例来说都会重复这个过程。
+
+:bell: **但是在 JavaScript 中，并没有类似的复制机制。你不能创建一个类的多个实例，只能创建多个对象，它们的 [[Prototype]] 关联的是同一个对象。但是在默认情况下并不会进行复制，因此这些对象之间并不会完全失去联系，它们是互相关联的**。
+
+实际上，大多数人不知道的是，**new Foo() 这个函数调用实际上并没有直接创建关联，这个关联只是一个意外的副作用**。new Foo() 只是间接完成了我们的目标：一个关联到其他对象的新对象。实现这点更直接的方法就是使用 Object.create()。
+
+在 JavaScript 中，我们并不会将一个对象（“类”）复制到另一个对象（“实例”），只是将它们关联起来。从视觉角度来说，[[Prototype]] 机制如下图所示，箭头从右到左，从下到上：
+
+![jsunknow](../.vuepress/public/assets/image/javascript/jsunknow3.png 'jsunknow')
+
+这个机制通常被称为**原型继承**。
+
+然而，原型继承这个词严重影响了大家对于 JavaScript 机制真实原理的理解。
+
+继承意味着复制操作，JavaScript（默认）并不会复制对象属性。相反，JavaScript 会在两个对象之间创建一个关联，这样一个对象就可以通过委托访问另一个对象的属性和函数。
+
+**委托**这个术语可以更加准确地描述 JavaScript 中对象的关联机制。
+
+:gem: **2. 构造函数**
