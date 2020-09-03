@@ -21,7 +21,7 @@ module.exports = {
     sidebar: [
       {
         title: "VuePress",
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: '搭建个人博客', path: '/blog/vuepress' }
           // ["https://github.com/cdoco/markdown-syntax", "Markdown语法详解"],
@@ -32,14 +32,23 @@ module.exports = {
       },
       {
         title: '服务器',
-        collapsable: false,
+        collapsable: true,
         children: [
-          { title: 'XAMPP与IIS', path: '/server/xampp' }
+          { title: 'XAMPP与IIS', path: '/server/xampp' },
+          { title: 'ESC', path: '/server/esc' }
+        ]
+      },
+      {
+        title: 'Nginx',
+        collapsable: true,
+        children: [
+          { title: 'Nginx 安装', path: '/nginx/install' },
+          { title: 'Nginx 使用', path: '/nginx/nginx' }
         ]
       },
       {
         title: 'PHP',
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: 'PHP入门', path: '/php/php' },
           { title: 'phpMyAdmin', path: '/php/phpMyAdmin' },
@@ -50,25 +59,43 @@ module.exports = {
       },
       {
         title: '函数式编程',
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: '《看完就够用的函数式编程》', path: '/fp/enoughFp' },
           { title: '《JavaScript轻量级函数式编程》', path: '/fp/lightFp' },
-          { title: '函数式编程学习资料', path: '/fp/fp' }
+          { title: '函数式编程学习笔记', path: '/fp/fp' }
+        ]
+      },
+      {
+        title: '面向切面编程',
+        collapsable: true,
+        children: [
+          { title: '理论知识', path: '/aop/aop1' },
+          { title: 'SOLID & DDD 实战', path: '/aop/aop2' }
+        ]
+      },
+      { 
+        title: 'React',
+        collapsable: true,
+        children: [
+          { title: 'React 相关知识', path: '/react/react1.md' },
+          { title: 'Redux 相关知识', path: '/react/react2.md' },
+          { title: 'Hook 相关知识', path: '/react/react3.md' },
+          { title: 'React Router 相关知识', path: '/react/react4.md' }
         ]
       },
       {
         title: 'Linux',
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: 'VirtualBox虚拟机与ubuntu系统', path: '/linux/ubuntu' },
           { title: 'Cygwin', path: '/linux/cygwin' },
-          { title: 'Linux知识', path: '/linux/linux' }
+          { title: 'Linux', path: '/linux/linux' }
         ]
       },
       {
         title: 'JavaScript',
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: '你不知道的JavaScript（上）', path: '/javascript/jsUnknow1' },
           { title: 'ECMAScript', path: '/javascript/ecmascript' },
@@ -81,28 +108,77 @@ module.exports = {
       },
       {
         title: 'Node.js',
-        collapsable: false,
+        collapsable: true,
         children: [
           { title: 'Node.js 入门', path: '/nodejs/nodejsStart' },
           { title: 'Node.js 基本使用', path: '/nodejs/nodejsApi' },
           { title: 'Node.js Express 框架', path: '/nodejs/express' },
-          { title: 'Node.js Koa 框架', path: '/nodejs/koa' }
+          { title: 'Node.js Koa 框架', path: '/nodejs/koa' },
+          { title: '前后端 BFF 架构实战', path: '/nodejs/nodejsYii' }
+        ]
+      },
+      {
+        title: '前端工程化',
+        collapsable: true,
+        children: [
+          { title: '开发脚手架', path: '/engineering/cli.md' },
+          { title: 'Webpack 与 Gulp', path: '/engineering/buildtool.md' },
+          { title: 'CI/CD', path: '/engineering/cicd.md' },
+          { title: 'Java 环境搭建和 SonarQube 安装', path: '/engineering/sonar.md' },
+          { title: 'Jenkins 安装', path: '/engineering/jenkins.md' }
+        ]
+      },
+      {
+        title: 'HTTP',
+        collapsable: true,
+        children: [
+          { title: 'HTTP 协议', path: '/http/http.md' },
+          { title: '密码学入门', path: '/http/cryptography.md' },
+          { title: 'HTTPS、HTTP2、HTTP3', path: '/http/http2.md' }
+        ]
+      },
+      {
+        title: '浏览器',
+        collapsable: true,
+        children: [
+          { title: 'Chrome 浏览器渲染机制内幕', path: '/browser/chrome.md' }
+        ]
+      },
+      {
+        title: '性能优化',
+        collapsable: true,
+        children: [
+          { title: '性能优化基础知识', path: '/performance/optimize1.md' },
+          { title: '渲染中的性能优化', path: '/performance/optimize2.md' },
+          { title: 'Node.js 性能调优', path: '/performance/optimize3.md' },
+          { title: '页面加载性能优化', path: '/performance/optimize4.md' },
+          { title: '性能优化项目实战', path: '/performance/optimize5.md' }
+        ]
+      },
+      {
+        title: '前端监控',
+        collapsable: true,
+        children: [
+          { title: '前端监控基础知识', path: '/monitor/monitor1.md' }
         ]
       },
       {
         title: '算法学习总结',
-        collapsable: false,
+        collapsable: true,
         children: [
-          { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' }
+          { title: '时间复杂度和空间复杂度', path: '/algorithm/complexity' },
+          { title: '动态规划', path: '/algorithm/dynamic' }
         ]
       },
       {
         title: 'Mac 开发体验优化',
-        collapsable: false,
+        collapsable: true,
         children: [
-          { title: '终端美化', path: '/mac/iterm2' }
+          { title: 'iTerm2 安装使用', path: '/mac/iterm2' },
+          { title: 'Homebrew 下载安装', path: '/mac/homebrew' }
         ]
       }
     ],
+    sidebarDepth: 2 // 默认为1，提取到 h2 标题；最大深度为2，提取到 h2 和 h3 标题；设置为0时禁用标题链接
   }
 }

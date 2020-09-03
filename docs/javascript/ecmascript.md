@@ -1,14 +1,12 @@
-## ES7~ES10 新特性
+## 提案到入选ECMA规范
 
-**1. 提案到入选ECMA规范**
+- Stage 0：strawman--最初想法的提交
+- Stage 1：proposal(提案)--由 TC39 至少一名成员倡导的正式提案文件，该文件包括 API 实例
+- Stage 2：draft(草案)--功能规范的初始版本，该版本包含功能规范的两个实验实现
+- Stage 3：candidate(候选)--提案规范通过审查并从厂商那里收集反馈
+- Stage 4：finished(完成)--提案准备加入 ECMAScript，但是到浏览器或者 Nodejs 中可能需要更长的时间
 
-- Stage 0:strawman-最初想法的提交
-- Stage 1:proposal(提案)--由TC39至少一名成员倡导的正式提案文件，该文件包括API 实例
-- Stage 2:draft(草案)--功能规范的初始版本，该版本包含功能规范的两个实验实现
-- Stage 3:candidate(候选)--提案规范通过审查并从厂商那里收集反馈
-- Stage 4:finished(完成)—提案准备加入ECMAScript，但是到浏览器或者Nodejs中可 能需要更长的时间
-
-**2. ES7~ES10 新特性速览**
+## ES7~ES10 新特性速览
 
 ECMAScript版本 | 新增特性
 -|-
@@ -17,9 +15,9 @@ ECMAScript2017(ES8) | 在异步操作、Object、String 能力上做了进一步
 ECMAScript2018(ES9) | 主要解决了遍历中异步、异步的归一操作等问题，也提供了对象的拷贝、筛选功能并且提升了正则的处理能力
 ECMAScript2019(ES10) | ES10 虽然没有大幅的改动，JSON 问题修复，数组、字符串、对象、函数等能力进一步增强，同时新增的 `BigInt` 数据类型也格外引人注目
 
-**3. ES7 新特性**
+## ES7 新特性
 
-- includes
+### includes
 
 用来判断一个元素是否存在一个数组中
 
@@ -30,16 +28,16 @@ arr.indexOf(4) >= 0; // false，之前的做法
 arr.includes(4); // false，现在的做法
 ```
 
-- 幂运算 **
+### 幂运算
 
 ```js
 Math.pow(2, 3); // 8，之前的做法
 2 ** 3; // 8，现在的做法
 ```
 
-**4. ES8 新特性**
+## ES8 新特性
 
-**4-1. async/await**
+### async/await
 
 ES8 的异步操作，比如 async/await，它的 next 返回的是一个 promise 对象。在 async/await 之前，我们实现异步操作一般是通过**嵌套回调**、`Promise`、`Generator` 来实现。现在主要是通过 async/await + Promise。
 
@@ -209,7 +207,7 @@ async function fn2() {
 fn2() // 打印出来的时间差不多是2秒，说明是同步执行的，取等待时间最长的异步函数
 ```
 
-**4-2. Object.values()**
+### Object.values()
 
 返回的是对象自身的属性值，不包括继承过来的值。
 
@@ -223,7 +221,7 @@ Object.keys(obj).map(key => obj[key]) // ["深圳", 30]
 Object.values(obj) // ["深圳", 30]
 ```
 
-**4-3. Object.entries()**
+### Object.entries()
 
 作用跟 for...in 类似，两者的区别是 for...in 会枚举原型链中的属性。
 
@@ -250,7 +248,7 @@ Object.entries(obj).forEach(([key, value]) => {
 });
 ```
 
-**4-4. String Padding**
+### String Padding
 
 - [String.prototype.padStart(targetLength [, padString])](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/padStart)，从字符串开头开始填充
 - [String.prototype.padEnd(targetLength [, padString])](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/padEnd)，从字符串末尾开始填充
@@ -259,7 +257,7 @@ targetLength 是当前字符串需要填充到的长度。如果这个数值小�
 
 padString 是要填充的字符串。如果字符串太长，使填充后的字符串长度超过了目标长度，则**只保留最左侧的部分**，其他部分会被截断。缺省值为""。
 
-**4-4. 结尾允许逗号**
+### 结尾允许逗号
 
 这种格式会比较友好
 
@@ -279,7 +277,7 @@ let obj = {
 }
 ```
 
-**4-5. Object.getOwnPropertyDescriptors()**
+### Object.getOwnPropertyDescriptors()
 
 [Object.getOwnPropertyDescriptors()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptors) 方法用来获取一个对象的所有自身属性的描述符。
 
@@ -309,7 +307,7 @@ Object.getOwnPropertyDescriptors(obj);
 */
 ```
 
-**4-6. SharedArrayBuffer 与 Atomics**
+### SharedArrayBuffer 与 Atomics
 
 [SharedArrayBuffer](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) 可以理解成共享内存，[Atomics](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Atomics) 则提供了一组静态方法来对 SharedArrayBuffer 进行原子操作。这给 js 带来了多线程的功能，是 js 中的高级特性，也是 js 引擎的核心改进。但既然有多线程，那么就会有竞争问题，所以就需要原子操作来解决这个问题，原子操作可以理解成给线程加锁。
 
@@ -384,9 +382,9 @@ onmessage = function(e) {
 
 ![http-server](../.vuepress/public/assets/image/javascript/http-server2.png 'http-server') 
 
-**5. ES9 新特性**
+## ES9 新特性
 
-**5-1. 异步迭代器和异步生成器**
+### 异步迭代器和异步生成器
 
 在了解异步迭代器和异步生成器之前，先来了解下什么是迭代器和生成器。
 
@@ -609,7 +607,7 @@ run();
 console.log(typeof asyncFn[Symbol.asyncIterator]) // 'function'
 ```
 
-**5-2. Promise.finally**
+### Promise.finally
 
 [Promise.prototype.finally()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise/finally) 返回一个 Promise。在 promise 结束时，无论结果是 fulfilled 或者是 rejected，都会执行指定的回调函数。这为在 Promise 是否成功完成后都需要执行的代码提供了一种方式，避免了同样的语句需要在 then() 和 catch() 中各写一次的情况。
 
@@ -649,7 +647,7 @@ fn()
   })
 ```
 
-**5-3. Rest/Spread**
+### Rest/Spread
 
 这个就是我们通常所说的[剩余参数](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Functions/Rest_parameters)和[扩展运算符](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Spread_syntax)，两者的符号都是 `...` ，这在 ES6 中就已经引入了，但是 ES6 中的作用对象**仅限于数组和函数调用**。在 ES9 中，为**对象**提供了像数组一样的剩余参数和扩展运算符。
 
@@ -728,7 +726,7 @@ console.log(objClone.info.phone) // 177777
 console.log(obj.info.phone) // 177777
 ```
 
-**5-4. 对正则表达式增强**
+### 对正则表达式增强
 
 - `?<name>` —— 命名捕获组
 
@@ -818,9 +816,9 @@ console.log(newReg.test(str)) // true
 String.raw`\u{54}` // '\u{54}'
 ```
 
-**6. ES10 新特性**
+## ES10 新特性
 
-**6-1. flat() 和 flatMap()**
+### flat() 和 flatMap()
 
 （1）flat
 
@@ -860,7 +858,7 @@ console.log(arr.flatMap(x => [x * 2])) // [2, 4, 6, 8]
 console.log(arr.flatMap(x => [[x * 2]])) // [[2], [4], [6], [8]]
 ```
 
-**6-2. Object.fromEntries()**
+### Object.fromEntries()
 
 [Object.fromEntries()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/fromEntries) 方法能够将一个键值对列表转换成一个对象。是 `Object.entries()` 的反转。
 
@@ -874,7 +872,7 @@ const arr = [ ['0', 'a'], ['1', 'b'], ['2', 'c'] ]
 console.log(Object.fromEntries(arr)) // {0: "a", 1: "b", 2: "c"}
 ```
 
-**6-3. String.prototype.matchAll()**
+### String.prototype.matchAll()
 
 [String.prototype.matchAll()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/matchAll) 方法返回一个包含所有匹配正则表达式的结果及分组捕获组的迭代器。
 
@@ -923,11 +921,11 @@ console.log(arr[0]) // ["shenzhen6", "h", "zhen6", "6", index: 0, input: "shenzh
 console.log(arr[1]) // ["shenzhen6", "h", "zhen6", "6", index: 10, input: "shenzhen66shenzhen66", groups: undefined]
 ```
 
-**6-4. String.prototype.trimStart() 和 String.prototype.trimEnd()**
+### String.prototype.trimStart() 和 String.prototype.trimEnd()
 
 这两个方法的作用是去除字符串的首位空格。
 
-**6-5. String.prototype.description**
+### String.prototype.description
 
 ```js
 // 通过工厂函数 Symbol() 创建符号时，可以选择通过参数提供字符串作为描述
@@ -940,7 +938,7 @@ console.log(String(sym)) // Symbol(description)
 console.log(sym.description) // description
 ```
 
-**6-6. 省略 catch 参数**
+### 省略 catch 参数
 
 在 ES10 之前，我们必须通过语法为 catch 子句绑定异常变量，无论是否有必要。很多时候 catch 块是多余的。 ES10 提案使我们能够简单的把变量省略掉。
 
@@ -952,7 +950,7 @@ try {} catch(e) {}
 try {} catch {}
 ```
 
-**6-7. 行分隔符（U + 2028）和段分隔符（U + 2029）符号现在允许在字符串文字中，与 JSON 匹配**
+### 行分隔符（U + 2028）和段分隔符（U + 2029）符号现在允许在字符串文字中，与 JSON 匹配
 
 JSON 可以包含行分隔符和段分隔符。但是目前只是草案，浏览器还未支持。
 
@@ -963,7 +961,7 @@ console.log(json) // {"name":"shenzhen
 JSON.parse(json) // Uncaught SyntaxError: Unexpected token in JSON at position 17
 ```
 
-**6-8. 更加友好的 JSON.stringify**
+### 更加友好的 JSON.stringify
 
 如果输入 Unicode 格式但是超出范围的字符，在原先JSON.stringify返回格式错误的Unicode字符串。现在实现了一个改变JSON.stringify的第3阶段提案，因此它为其输出转义序列，使其成为有效Unicode（并以UTF-8表示）。
 对字符 U+D800 到 U+DFFF 处理。
@@ -972,7 +970,7 @@ JSON.parse(json) // Uncaught SyntaxError: Unexpected token in JSON at position 1
 JSON.stringify("\UDEAD"); // JSON转义序列，应该输出'"\\UDEAD"'，但是现在浏览器还未支持，输出的是"UDEAD"
 ```
 
-**6-9. Function.prototype.toString()**
+### Function.prototype.toString()
 
 现在能够返回精确字符，包括空格和注释。
 
@@ -985,7 +983,7 @@ console.log(foo.toString()) // function foo(){}
 console.log(foo.toString()) // function /*注释*/ foo /*注释*/() {}
 ```
 
-**6-10. BigInt —— 任意精度整数**
+### BigInt —— 任意精度整数
 
 [BigInt](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/BigInt) 是一种内置对象，它提供了一种方法来表示大于 `2^53 - 1` 的整数。这原本是 Javascript中可以用 Number 表示的最大数字。BigInt 可以表示任意大的整数。
 
@@ -1019,7 +1017,7 @@ console.log(num - 1) // Uncaught TypeError: Cannot mix BigInt and other types, u
 console.log(typeof Object(1n) === 'object') // true
 ```
 
-**6-11. 标准化 globalThis 对象**
+### 标准化 globalThis 对象
 
 可以在任何平台访问全局属性。
 
